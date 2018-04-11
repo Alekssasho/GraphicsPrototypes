@@ -21,4 +21,5 @@ private:
 	GraphicsVars::SharedPtr m_Vars;
 	DirectionalLight::SharedPtr m_DirLight;
 	FirstPersonCameraController m_CameraController;
+	bool m_CaptureNextFrame = false;
 };
