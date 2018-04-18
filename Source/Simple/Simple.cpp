@@ -6,25 +6,81 @@ RENDERDOC_API_1_1_2* renderDocAPI = nullptr;
 
 void Simple::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 {
+	if (pGui->beginGroup("Load Data", true))
+	{
+		if (pGui->addButton("Load Model"))
+		{
+			LoadModel();
+		}
+
+		if (pGui->addButton("Load Scene", true))
+		{
+			LoadScene();
+		}
+
+		pGui->endGroup();
+	}
 	if (pGui->beginGroup("Scene Controls", true))
 	{
 		pGui->addFloat4Var("Clear Color", m_ClearColor, 0.0f, 1.0f);
+		pGui->addFloatVar("Camera Speed", m_CameraSpeed, 0.0f, 100000.0f, 1.0f);
 		pGui->endGroup();
+	}
+}
+
+void Simple::LoadModel()
+{
+	std::string filename;
+	if (openFileDialog(Model::kSupportedFileFormatsStr, filename))
+	{
+		auto model = Model::createFromFile(filename.c_str());
+		if (!model)
+		{
+			return;
+		}
+		m_Scene = Scene::create();
+		m_Scene->addModelInstance(model, "");
+		m_Scene->addCamera(m_Camera);
+		m_Scene->setActiveCamera(0);
+
+		m_Renderer = SceneRenderer::create(m_Scene);
+		m_Renderer->toggleMeshCulling(false);
+
+		m_Camera->setTarget(model->getCenter());
+		m_Camera->setPosition(model->getRadius() * 5.0f * vec3{ 0.0f, 0.0f, 1.0f } + model->getCenter());
+
+		m_CameraSpeed = model->getRadius() * 0.25f;
+	}
+}
+
+void Simple::LoadScene()
+{
+	std::string filename;
+	if (openFileDialog(Scene::kFileFormatString, filename))
+	{
+		auto scene = Scene::loadFromFile(filename);
+		if (!scene)
+		{
+			return;
+		}
+
+		m_Scene = scene;
+		auto cameraInd = m_Scene->addCamera(m_Camera);
+		m_Scene->setActiveCamera(cameraInd);
+
+		m_Renderer = SceneRenderer::create(m_Scene);
+		m_Renderer->toggleMeshCulling(false);
+
+		m_Camera->setPosition({ 0.0f, 0.0f, 0.0f });
+		m_Camera->setTarget({ 0.0f, 0.0f, 1.0f });
 	}
 }
 
 void Simple::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
 {
-	m_Model = Model::createFromFile("Vampire/Vampire_A_Lusth.dae");
-	if (!m_Model)
-	{
-		pSample->shutdown();
-	}
 	m_Camera = Camera::create();
-	m_Camera->setTarget(m_Model->getCenter());
 	m_Camera->setUpVector({ 0.0f, 1.0f, 0.0f });
-	m_Camera->setPosition(m_Model->getRadius() * 5.0f * vec3{ 0.0f, 0.0f, 1.0f } + m_Model->getCenter());
-	m_Camera->setDepthRange(0.001f, m_Model->getRadius() * 10.0f);
+	m_Camera->setDepthRange(0.01f, 1000.0f);
 	m_Camera->setAspectRatio(1280.0f / 720.0f);
 
 	m_Program = GraphicsProgram::createFromFile("Shaders/SimpleModel.slang", "", "PSmain");
@@ -43,20 +99,56 @@ void Simple::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderCo
 
 void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
 {
+	StartCaptureRenderDoc(pSample, pRenderContext);
+	m_CameraController.setCameraSpeed(m_CameraSpeed);
+	m_CameraController.update();
+
+	pRenderContext->clearFbo(pTargetFbo.get(), m_ClearColor, 1.0f, 0, FboAttachmentType::All);
+
+	if (m_Scene)
+	{
+		m_State->setFbo(pTargetFbo);
+		m_State->setProgram(m_Program);
+		pRenderContext->setGraphicsState(m_State);
+		pRenderContext->setGraphicsVars(m_Vars);
+
+		m_Renderer->renderScene(pRenderContext.get());
+	}
+	EndCaptureRenderDoc(pSample, pRenderContext);
+}
+
+bool Simple::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
+{
+	// Ctrl + R for capture with renderdoc
+	if (keyEvent.key == KeyboardEvent::Key::R
+		&& keyEvent.mods.isCtrlDown
+		&& keyEvent.type == KeyboardEvent::Type::KeyReleased)
+	{
+		m_CaptureNextFrame = true;
+		return true;
+	}
+	else
+	{
+		return m_CameraController.onKeyEvent(keyEvent);
+	}
+}
+
+bool Simple::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)
+{
+	return m_CameraController.onMouseEvent(mouseEvent);
+}
+
+void Simple::StartCaptureRenderDoc(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+{
 	if (m_CaptureNextFrame)
 	{
 		pRenderContext->flush(true);
 		renderDocAPI->StartFrameCapture((ID3D12Device*)gpDevice->getApiHandle(), (HWND)pSample->getWindow()->getApiHandle());
 	}
-	m_CameraController.update();
+}
 
-	pRenderContext->clearFbo(pTargetFbo.get(), m_ClearColor, 1.0f, 0, FboAttachmentType::All);
-
-	m_State->setFbo(pTargetFbo);
-	m_State->setProgram(m_Program);
-	pRenderContext->setGraphicsState(m_State);
-	pRenderContext->setGraphicsVars(m_Vars);
-	ModelRenderer::render(pRenderContext.get(), m_Model, m_Camera.get(), false);
+void Simple::EndCaptureRenderDoc(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+{
 	if (m_CaptureNextFrame)
 	{
 		pRenderContext->flush(true);
@@ -80,31 +172,10 @@ void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pR
 	}
 }
 
-bool Simple::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
-{
-	// Ctrl + R for capture with renderdoc
-	if (keyEvent.key == KeyboardEvent::Key::R
-		&& keyEvent.mods.isCtrlDown)
-	{
-		m_CaptureNextFrame = true;
-		return true;
-	}
-	else
-	{
-		return m_CameraController.onKeyEvent(keyEvent);
-	}
-}
-
-bool Simple::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)
-{
-	return m_CameraController.onMouseEvent(mouseEvent);
-}
-
 int main()
 {
 	// Try loading RenderDoc API
 	const char* renderDocDllPath = "C:\\Program Files\\RenderDoc\\renderdoc.dll";
-#ifdef _DEBUG
 	auto module = ::LoadLibraryA(renderDocDllPath);
 	if (!module)
 	{
@@ -119,8 +190,6 @@ int main()
 	renderDocAPI->SetCaptureKeys(nullptr, 0);
 	renderDocAPI->MaskOverlayBits(eRENDERDOC_Overlay_None, eRENDERDOC_Overlay_None);
 	renderDocAPI->UnloadCrashHandler();
-#endif
-
 
 	Simple::UniquePtr pRenderer = std::make_unique<Simple>();
 	Falcor::SampleConfig config;

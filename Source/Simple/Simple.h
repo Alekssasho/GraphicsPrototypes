@@ -13,8 +13,14 @@ public:
 	virtual bool onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent) override;
 	virtual bool onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent) override;
 private:
+	void StartCaptureRenderDoc(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext);
+	void EndCaptureRenderDoc(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext);
+	void LoadModel();
+	void LoadScene();
+
 	glm::vec4 m_ClearColor = { 0.0f, 1.0f, 0.0f, 1.0f };
-	Model::SharedPtr m_Model;
+	Scene::SharedPtr m_Scene;
+	SceneRenderer::SharedPtr m_Renderer;
 	Camera::SharedPtr m_Camera;
 	GraphicsProgram::SharedPtr m_Program;
 	GraphicsState::SharedPtr m_State;
@@ -22,4 +28,5 @@ private:
 	DirectionalLight::SharedPtr m_DirLight;
 	FirstPersonCameraController m_CameraController;
 	bool m_CaptureNextFrame = false;
+	float m_CameraSpeed = 1.0f;
 };
