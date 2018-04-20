@@ -23,7 +23,8 @@ void Simple::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 	if (pGui->beginGroup("Scene Controls", true))
 	{
 		pGui->addFloat4Var("Clear Color", m_ClearColor, 0.0f, 1.0f);
-		pGui->addFloatVar("Camera Speed", m_CameraSpeed, 0.0f, 100000.0f, 1.0f);
+		pGui->addFloatVar("Camera Speed", m_CameraSpeed, 0.0f, 100000.0f, 0.1f);
+		pGui->addFloat3Var("Ambient", m_Ambient, 0.0f, 1.0f);
 		pGui->endGroup();
 	}
 }
@@ -87,13 +88,6 @@ void Simple::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderCo
 	m_State = GraphicsState::create();
 	m_Vars = GraphicsVars::create(m_Program->getReflector());
 
-	m_Vars["PerFrameCB"]["gAmbient"] = vec3{ 0.2f, 0.2f, 0.2f };
-
-	m_DirLight = DirectionalLight::create();
-	m_DirLight->setWorldDirection(glm::vec3(0.13f, 0.27f, -0.9f));
-	ConstantBuffer* CB = m_Vars["PerFrameCB"].get();
-	m_DirLight->setIntoProgramVars(m_Vars.get(), CB, "gDirLight");
-
 	m_CameraController.attachCamera(m_Camera);
 }
 
@@ -109,6 +103,7 @@ void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pR
 	{
 		m_State->setFbo(pTargetFbo);
 		m_State->setProgram(m_Program);
+		m_Vars["PerFrameCB"]["gAmbient"] = m_Ambient;
 		pRenderContext->setGraphicsState(m_State);
 		pRenderContext->setGraphicsVars(m_Vars);
 

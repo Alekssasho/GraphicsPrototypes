@@ -25,8 +25,8 @@ private:
 	GraphicsProgram::SharedPtr m_Program;
 	GraphicsState::SharedPtr m_State;
 	GraphicsVars::SharedPtr m_Vars;
-	DirectionalLight::SharedPtr m_DirLight;
 	FirstPersonCameraController m_CameraController;
 	bool m_CaptureNextFrame = false;
 	float m_CameraSpeed = 1.0f;
+	glm::vec3 m_Ambient = {0.01f, 0.01f, 0.01f};
 };
