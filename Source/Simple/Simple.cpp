@@ -172,19 +172,18 @@ int main()
 	// Try loading RenderDoc API
 	const char* renderDocDllPath = "C:\\Program Files\\RenderDoc\\renderdoc.dll";
 	auto module = ::LoadLibraryA(renderDocDllPath);
-	if (!module)
+	if (module)
 	{
-		return -1;
+		pRENDERDOC_GetAPI RENDERDOC_GetAPIfunc = (pRENDERDOC_GetAPI)::GetProcAddress(module, "RENDERDOC_GetAPI");
+		auto ret = RENDERDOC_GetAPIfunc(eRENDERDOC_API_Version_1_1_2, (void**)&renderDocAPI);
+		assert(ret == 1);
+
+		renderDocAPI->SetFocusToggleKeys(nullptr, 0);
+		renderDocAPI->SetCaptureKeys(nullptr, 0);
+		renderDocAPI->MaskOverlayBits(eRENDERDOC_Overlay_None, eRENDERDOC_Overlay_None);
+		renderDocAPI->UnloadCrashHandler();
 	}
 
-	pRENDERDOC_GetAPI RENDERDOC_GetAPIfunc = (pRENDERDOC_GetAPI)::GetProcAddress(module, "RENDERDOC_GetAPI");
-	auto ret = RENDERDOC_GetAPIfunc(eRENDERDOC_API_Version_1_1_2, (void**)&renderDocAPI);
-	assert(ret == 1);
-
-	renderDocAPI->SetFocusToggleKeys(nullptr, 0);
-	renderDocAPI->SetCaptureKeys(nullptr, 0);
-	renderDocAPI->MaskOverlayBits(eRENDERDOC_Overlay_None, eRENDERDOC_Overlay_None);
-	renderDocAPI->UnloadCrashHandler();
 
 	Simple::UniquePtr pRenderer = std::make_unique<Simple>();
 	Falcor::SampleConfig config;
