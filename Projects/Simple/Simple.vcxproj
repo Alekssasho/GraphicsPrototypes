@@ -81,6 +81,7 @@
     <ClCompile Include="..\..\Source\Simple\Simple.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\Data\Shaders\ShadowMap.slang" />
     <None Include="..\..\Data\Shaders\SimpleModel.slang" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -29,4 +29,9 @@ private:
 	bool m_CaptureNextFrame = false;
 	float m_CameraSpeed = 1.0f;
 	glm::vec3 m_Ambient = {0.01f, 0.01f, 0.01f};
+
+	GraphicsProgram::SharedPtr m_ShadowMapProgram;
+	GraphicsVars::SharedPtr m_ShadowMapVars;
+	Fbo::SharedPtr m_ShadowMapFBO;
+	Camera::SharedPtr m_ShadowMapCamera;
 };

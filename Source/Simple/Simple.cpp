@@ -84,9 +84,21 @@ void Simple::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderCo
 	m_Camera->setDepthRange(0.01f, 1000.0f);
 	m_Camera->setAspectRatio(1280.0f / 720.0f);
 
-	m_Program = GraphicsProgram::createFromFile("Shaders/SimpleModel.slang", "", "PSmain");
 	m_State = GraphicsState::create();
+	m_Program = GraphicsProgram::createFromFile("Shaders/SimpleModel.slang", "", "PSmain");
 	m_Vars = GraphicsVars::create(m_Program->getReflector());
+
+	m_ShadowMapProgram = GraphicsProgram::createFromFile("Shaders/ShadowMap.slang", "", "PSmain");
+	m_ShadowMapVars = GraphicsVars::create(m_ShadowMapProgram->getReflector());
+
+	{
+		Fbo::Desc desc;
+		desc.setDepthStencilTarget(ResourceFormat::D32Float);
+
+		m_ShadowMapFBO = FboHelper::create2D(2048, 2048, desc);
+	}
+
+	m_ShadowMapCamera = Camera::create();
 
 	m_CameraController.attachCamera(m_Camera);
 }
@@ -101,9 +113,34 @@ void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pR
 
 	if (m_Scene)
 	{
+	// Check if we have dir light and create shadow map for it
+		for (const auto& light : m_Scene->getLights())
+		{
+			if (light->getType() == LightDirectional)
+			{
+				pRenderContext->clearFbo(m_ShadowMapFBO.get(), { 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f, 0, FboAttachmentType::Depth);
+
+				m_State->setFbo(m_ShadowMapFBO);
+				m_State->setProgram(m_ShadowMapProgram);
+				pRenderContext->setGraphicsState(m_State);
+				pRenderContext->setGraphicsVars(m_ShadowMapVars);
+
+				auto radius = 75.0f;
+				m_ShadowMapCamera->setProjectionMatrix(glm::ortho(-radius, radius, -radius, radius, 1.0f, 1.0f + 2 * radius));
+				m_ShadowMapCamera->setViewMatrix(glm::lookAt(-std::static_pointer_cast<DirectionalLight>(light)->getWorldDirection() * radius, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }));
+
+				m_Renderer->renderScene(pRenderContext.get(), m_ShadowMapCamera.get());
+			}
+		}
+
 		m_State->setFbo(pTargetFbo);
 		m_State->setProgram(m_Program);
 		m_Vars["PerFrameCB"]["gAmbient"] = m_Ambient;
+		m_Vars["PerFrameCB"]["gLightViewMatrix"] = m_ShadowMapCamera->getViewProjMatrix();
+		m_Vars->setTexture("gShadowMap", m_ShadowMapFBO->getDepthStencilTexture());
+		Sampler::Desc desc;
+		desc.setAddressingMode(Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp).setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
+		m_Vars->setSampler("gShadowMapSampler", Sampler::create(desc));
 		pRenderContext->setGraphicsState(m_State);
 		pRenderContext->setGraphicsVars(m_Vars);
 
