@@ -117,7 +117,8 @@ bool Simple::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
 	// Ctrl + R for capture with renderdoc
 	if (keyEvent.key == KeyboardEvent::Key::R
 		&& keyEvent.mods.isCtrlDown
-		&& keyEvent.type == KeyboardEvent::Type::KeyReleased)
+		&& keyEvent.type == KeyboardEvent::Type::KeyReleased
+		&& renderDocAPI) // check if we have loaded renderdoc
 	{
 		m_CaptureNextFrame = true;
 		return true;
@@ -167,13 +168,26 @@ void Simple::EndCaptureRenderDoc(SampleCallbacks* pSample, RenderContext::Shared
 	}
 }
 
-int main()
+int main(int argc, char** argv)
 {
-	// Try loading RenderDoc API
-	const char* renderDocDllPath = "C:\\Program Files\\RenderDoc\\renderdoc.dll";
-	auto module = ::LoadLibraryA(renderDocDllPath);
-	if (module)
+	bool loadRenderDoc = false;
+	for (int i = 1; i < argc; ++i)
 	{
+		if (strcmp(argv[i], "--renderdoc") == 0)
+		{
+			loadRenderDoc = true;
+		}
+	}
+
+	if (loadRenderDoc)
+	{
+		// Try loading RenderDoc API
+		const char* renderDocDllPath = "C:\\Program Files\\RenderDoc\\renderdoc.dll";
+		auto module = ::LoadLibraryA(renderDocDllPath);
+		if (!module)
+		{
+			return -1;
+		}
 		pRENDERDOC_GetAPI RENDERDOC_GetAPIfunc = (pRENDERDOC_GetAPI)::GetProcAddress(module, "RENDERDOC_GetAPI");
 		auto ret = RENDERDOC_GetAPIfunc(eRENDERDOC_API_Version_1_1_2, (void**)&renderDocAPI);
 		assert(ret == 1);
@@ -191,5 +205,7 @@ int main()
 	config.windowDesc.resizableWindow = false;
 	config.windowDesc.width = 1280;
 	config.windowDesc.height = 720;
+	config.argc = argc;
+	config.argv = argv;
 	Falcor::Sample::run(config, pRenderer);
 }
