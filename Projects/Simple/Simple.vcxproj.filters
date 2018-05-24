@@ -26,5 +26,6 @@
     <None Include="..\..\Data\Shaders\ShadowMap.slang">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,7 @@
 #include "Simple.h"
 
 #include <RenderDoc/renderdoc_app.h>
+#include <pix3.h>
 
 RENDERDOC_API_1_1_2* renderDocAPI = nullptr;
 
@@ -20,11 +21,29 @@ void Simple::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 
 		pGui->endGroup();
 	}
-	if (pGui->beginGroup("Scene Controls", true))
+	if (pGui->beginGroup("App Controls", true))
 	{
 		pGui->addFloat4Var("Clear Color", m_ClearColor, 0.0f, 1.0f);
 		pGui->addFloatVar("Camera Speed", m_CameraSpeed, 0.0f, 100000.0f, 0.1f);
-		pGui->addFloat3Var("Ambient", m_Ambient, 0.0f, 1.0f);
+		pGui->endGroup();
+	}
+
+	if (pGui->beginGroup("Scene Controls", true))
+	{
+		pGui->addFloatVar("Ambient", m_Ambient, 0.0f, 1.0f);
+		if (pGui->addFloat3Var("Dir Light", dirLight, -1.0f, 1.0f))
+		{
+			dirLight = glm::normalize(dirLight);
+		}
+		pGui->addFloatVar("Shadow Radius", shadowRadius, 0.1f, 100000.0f, 1.0f);
+		if (pGui->addIntVar("Shadow Texture Size", shadowTextureSize))
+		{
+			Fbo::Desc desc;
+			desc.setDepthStencilTarget(ResourceFormat::D32Float);
+
+			m_ShadowMapFBO = FboHelper::create2D(shadowTextureSize, shadowTextureSize, desc);
+		}
+		pGui->addCheckBox("Show Shadow Map", showShadowMap);
 		pGui->endGroup();
 	}
 }
@@ -81,8 +100,10 @@ void Simple::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderCo
 {
 	m_Camera = Camera::create();
 	m_Camera->setUpVector({ 0.0f, 1.0f, 0.0f });
-	m_Camera->setDepthRange(0.01f, 1000.0f);
+	m_Camera->setDepthRange(0.01f, 10000.0f);
 	m_Camera->setAspectRatio(1280.0f / 720.0f);
+
+	m_CameraController.attachCamera(m_Camera);
 
 	m_State = GraphicsState::create();
 	m_Program = GraphicsProgram::createFromFile("Shaders/SimpleModel.slang", "", "PSmain");
@@ -95,17 +116,21 @@ void Simple::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderCo
 		Fbo::Desc desc;
 		desc.setDepthStencilTarget(ResourceFormat::D32Float);
 
-		m_ShadowMapFBO = FboHelper::create2D(2048, 2048, desc);
+		m_ShadowMapFBO = FboHelper::create2D(shadowTextureSize, shadowTextureSize, desc);
 	}
 
 	m_ShadowMapCamera = Camera::create();
 
-	m_CameraController.attachCamera(m_Camera);
+	Sampler::Desc desc;
+	desc.setAddressingMode(Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
+	desc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
+	m_ShadowMapSampler = Sampler::create(desc);
 }
 
 void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
 {
 	StartCaptureRenderDoc(pSample, pRenderContext);
+	PIXBeginEvent(pRenderContext->getLowLevelData()->getCommandList().GetInterfacePtr(), PIX_COLOR(255, 0, 0), "Frame");
 	m_CameraController.setCameraSpeed(m_CameraSpeed);
 	m_CameraController.update();
 
@@ -113,11 +138,15 @@ void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pR
 
 	if (m_Scene)
 	{
-	// Check if we have dir light and create shadow map for it
+		Program::reloadAllPrograms();
+
+		// Check if we have dir light and create shadow map for it
 		for (const auto& light : m_Scene->getLights())
 		{
 			if (light->getType() == LightDirectional)
 			{
+				auto dirl = std::static_pointer_cast<DirectionalLight>(light);
+				dirl->setWorldDirection(dirLight);
 				pRenderContext->clearFbo(m_ShadowMapFBO.get(), { 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f, 0, FboAttachmentType::Depth);
 
 				m_State->setFbo(m_ShadowMapFBO);
@@ -125,9 +154,8 @@ void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pR
 				pRenderContext->setGraphicsState(m_State);
 				pRenderContext->setGraphicsVars(m_ShadowMapVars);
 
-				auto radius = 75.0f;
-				m_ShadowMapCamera->setProjectionMatrix(glm::ortho(-radius, radius, -radius, radius, 1.0f, 1.0f + 2 * radius));
-				m_ShadowMapCamera->setViewMatrix(glm::lookAt(-std::static_pointer_cast<DirectionalLight>(light)->getWorldDirection() * radius, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }));
+				m_ShadowMapCamera->setProjectionMatrix(glm::ortho(-shadowRadius, shadowRadius, -shadowRadius, shadowRadius, 1.0f, 1.0f + 2 * shadowRadius));
+				m_ShadowMapCamera->setViewMatrix(glm::lookAt(-dirl->getWorldDirection() * shadowRadius, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }));
 
 				m_Renderer->renderScene(pRenderContext.get(), m_ShadowMapCamera.get());
 			}
@@ -135,17 +163,22 @@ void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pR
 
 		m_State->setFbo(pTargetFbo);
 		m_State->setProgram(m_Program);
-		m_Vars["PerFrameCB"]["gAmbient"] = m_Ambient;
+		m_Vars["PerFrameCB"]["gAmbient"] = glm::vec3{ m_Ambient, m_Ambient, m_Ambient };
 		m_Vars["PerFrameCB"]["gLightViewMatrix"] = m_ShadowMapCamera->getViewProjMatrix();
 		m_Vars->setTexture("gShadowMap", m_ShadowMapFBO->getDepthStencilTexture());
-		Sampler::Desc desc;
-		desc.setAddressingMode(Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp).setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
-		m_Vars->setSampler("gShadowMapSampler", Sampler::create(desc));
+		m_Vars->setSampler("gShadowMapSampler", m_ShadowMapSampler);
 		pRenderContext->setGraphicsState(m_State);
 		pRenderContext->setGraphicsVars(m_Vars);
 
 		m_Renderer->renderScene(pRenderContext.get());
+
+		if (showShadowMap)
+		{
+			pRenderContext->blit(m_ShadowMapFBO->getDepthStencilTexture()->getSRV(), pTargetFbo->getRenderTargetView(0), glm::vec4{ 0.0f, 0.0f, shadowTextureSize, shadowTextureSize }, glm::vec4{ 1000, 0, 1200, 200 });
+			pRenderContext->flush(true);
+		}
 	}
+	PIXEndEvent(pRenderContext->getLowLevelData()->getCommandList().GetInterfacePtr());
 	EndCaptureRenderDoc(pSample, pRenderContext);
 }
 
@@ -164,6 +197,7 @@ bool Simple::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
 	{
 		return m_CameraController.onKeyEvent(keyEvent);
 	}
+	return false;
 }
 
 bool Simple::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)

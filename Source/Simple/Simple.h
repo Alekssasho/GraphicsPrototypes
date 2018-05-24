@@ -22,16 +22,23 @@ private:
 	Scene::SharedPtr m_Scene;
 	SceneRenderer::SharedPtr m_Renderer;
 	Camera::SharedPtr m_Camera;
-	GraphicsProgram::SharedPtr m_Program;
-	GraphicsState::SharedPtr m_State;
-	GraphicsVars::SharedPtr m_Vars;
 	FirstPersonCameraController m_CameraController;
 	bool m_CaptureNextFrame = false;
 	float m_CameraSpeed = 1.0f;
-	glm::vec3 m_Ambient = {0.01f, 0.01f, 0.01f};
+
+	GraphicsProgram::SharedPtr m_Program;
+	GraphicsState::SharedPtr m_State;
+	GraphicsVars::SharedPtr m_Vars;
+	float m_Ambient = 0.01f;
 
 	GraphicsProgram::SharedPtr m_ShadowMapProgram;
 	GraphicsVars::SharedPtr m_ShadowMapVars;
 	Fbo::SharedPtr m_ShadowMapFBO;
 	Camera::SharedPtr m_ShadowMapCamera;
+	Sampler::SharedPtr m_ShadowMapSampler;
+
+	glm::vec3 dirLight = { -0.819, -0.560, -0.124 };
+	int shadowTextureSize = 2048;
+	float shadowRadius = 75.0f;
+	bool showShadowMap = false;
 };
