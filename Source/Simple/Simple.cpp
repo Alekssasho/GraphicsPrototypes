@@ -35,15 +35,7 @@ void Simple::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 		{
 			dirLight = glm::normalize(dirLight);
 		}
-		pGui->addFloatVar("Shadow Radius", shadowRadius, 0.1f, 100000.0f, 1.0f);
-		if (pGui->addIntVar("Shadow Texture Size", shadowTextureSize))
-		{
-			Fbo::Desc desc;
-			desc.setDepthStencilTarget(ResourceFormat::D32Float);
-
-			m_ShadowMapFBO = FboHelper::create2D(shadowTextureSize, shadowTextureSize, desc);
-		}
-		pGui->addCheckBox("Show Shadow Map", showShadowMap);
+		m_DirLightShadowMap.OnGui(pGui);
 		pGui->endGroup();
 	}
 }
@@ -109,22 +101,7 @@ void Simple::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderCo
 	m_Program = GraphicsProgram::createFromFile("Shaders/SimpleModel.slang", "", "PSmain");
 	m_Vars = GraphicsVars::create(m_Program->getReflector());
 
-	m_ShadowMapProgram = GraphicsProgram::createFromFile("Shaders/ShadowMap.slang", "", "PSmain");
-	m_ShadowMapVars = GraphicsVars::create(m_ShadowMapProgram->getReflector());
-
-	{
-		Fbo::Desc desc;
-		desc.setDepthStencilTarget(ResourceFormat::D32Float);
-
-		m_ShadowMapFBO = FboHelper::create2D(shadowTextureSize, shadowTextureSize, desc);
-	}
-
-	m_ShadowMapCamera = Camera::create();
-
-	Sampler::Desc desc;
-	desc.setAddressingMode(Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
-	desc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
-	m_ShadowMapSampler = Sampler::create(desc);
+	m_DirLightShadowMap.Initialize();
 }
 
 void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
@@ -147,36 +124,22 @@ void Simple::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pR
 			{
 				auto dirl = std::static_pointer_cast<DirectionalLight>(light);
 				dirl->setWorldDirection(dirLight);
-				pRenderContext->clearFbo(m_ShadowMapFBO.get(), { 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f, 0, FboAttachmentType::Depth);
-
-				m_State->setFbo(m_ShadowMapFBO);
-				m_State->setProgram(m_ShadowMapProgram);
-				pRenderContext->setGraphicsState(m_State);
-				pRenderContext->setGraphicsVars(m_ShadowMapVars);
-
-				m_ShadowMapCamera->setProjectionMatrix(glm::ortho(-shadowRadius, shadowRadius, -shadowRadius, shadowRadius, 1.0f, 1.0f + 2 * shadowRadius));
-				m_ShadowMapCamera->setViewMatrix(glm::lookAt(-dirl->getWorldDirection() * shadowRadius, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }));
-
-				m_Renderer->renderScene(pRenderContext.get(), m_ShadowMapCamera.get());
+				m_DirLightShadowMap.Render(pRenderContext, m_Renderer, dirl);
 			}
 		}
 
 		m_State->setFbo(pTargetFbo);
 		m_State->setProgram(m_Program);
 		m_Vars["PerFrameCB"]["gAmbient"] = glm::vec3{ m_Ambient, m_Ambient, m_Ambient };
-		m_Vars["PerFrameCB"]["gLightViewMatrix"] = m_ShadowMapCamera->getViewProjMatrix();
-		m_Vars->setTexture("gShadowMap", m_ShadowMapFBO->getDepthStencilTexture());
-		m_Vars->setSampler("gShadowMapSampler", m_ShadowMapSampler);
+		m_Vars["PerFrameCB"]["gLightViewMatrix"] = m_DirLightShadowMap.GetLightProjectionMatrix();
+		m_Vars->setTexture("gShadowMap", m_DirLightShadowMap.GetShadowMapTexture());
+		m_Vars->setSampler("gShadowMapSampler", m_DirLightShadowMap.GetShadowMapSampler());
 		pRenderContext->setGraphicsState(m_State);
 		pRenderContext->setGraphicsVars(m_Vars);
 
 		m_Renderer->renderScene(pRenderContext.get());
 
-		if (showShadowMap)
-		{
-			pRenderContext->blit(m_ShadowMapFBO->getDepthStencilTexture()->getSRV(), pTargetFbo->getRenderTargetView(0), glm::vec4{ 0.0f, 0.0f, shadowTextureSize, shadowTextureSize }, glm::vec4{ 1000, 0, 1200, 200 });
-			pRenderContext->flush(true);
-		}
+		m_DirLightShadowMap.DebugDraw(pRenderContext, pTargetFbo);
 	}
 	PIXEndEvent(pRenderContext->getLowLevelData()->getCommandList().GetInterfacePtr());
 	EndCaptureRenderDoc(pSample, pRenderContext);

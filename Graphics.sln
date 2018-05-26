@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Falcor", "External\Falcor\F
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Simple", "Projects\Simple\Simple.vcxproj", "{484ED92D-7AEA-4E28-A80A-852E817C5B1C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Techniques", "Projects\Techniques\Techniques.vcxproj", "{10D34622-4517-4C53-8007-F0E4E27324DB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		DebugD3D12|x64 = DebugD3D12|x64
@@ -31,6 +33,14 @@ Global
 		{484ED92D-7AEA-4E28-A80A-852E817C5B1C}.ReleaseD3D12|x64.Build.0 = ReleaseD3D12|x64
 		{484ED92D-7AEA-4E28-A80A-852E817C5B1C}.ReleaseVK|x64.ActiveCfg = ReleaseD3D12|x64
 		{484ED92D-7AEA-4E28-A80A-852E817C5B1C}.ReleaseVK|x64.Build.0 = ReleaseD3D12|x64
+		{10D34622-4517-4C53-8007-F0E4E27324DB}.DebugD3D12|x64.ActiveCfg = DebugD3D12|x64
+		{10D34622-4517-4C53-8007-F0E4E27324DB}.DebugD3D12|x64.Build.0 = DebugD3D12|x64
+		{10D34622-4517-4C53-8007-F0E4E27324DB}.DebugVK|x64.ActiveCfg = DebugD3D12|x64
+		{10D34622-4517-4C53-8007-F0E4E27324DB}.DebugVK|x64.Build.0 = DebugD3D12|x64
+		{10D34622-4517-4C53-8007-F0E4E27324DB}.ReleaseD3D12|x64.ActiveCfg = ReleaseD3D12|x64
+		{10D34622-4517-4C53-8007-F0E4E27324DB}.ReleaseD3D12|x64.Build.0 = ReleaseD3D12|x64
+		{10D34622-4517-4C53-8007-F0E4E27324DB}.ReleaseVK|x64.ActiveCfg = ReleaseD3D12|x64
+		{10D34622-4517-4C53-8007-F0E4E27324DB}.ReleaseVK|x64.Build.0 = ReleaseD3D12|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

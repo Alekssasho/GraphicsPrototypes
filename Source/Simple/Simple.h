@@ -2,6 +2,8 @@
 
 #include <Falcor.h>
 
+#include "../Techniques/ShadowMapping.h"
+
 using namespace Falcor;
 
 class Simple : public Renderer
@@ -31,14 +33,6 @@ private:
 	GraphicsVars::SharedPtr m_Vars;
 	float m_Ambient = 0.01f;
 
-	GraphicsProgram::SharedPtr m_ShadowMapProgram;
-	GraphicsVars::SharedPtr m_ShadowMapVars;
-	Fbo::SharedPtr m_ShadowMapFBO;
-	Camera::SharedPtr m_ShadowMapCamera;
-	Sampler::SharedPtr m_ShadowMapSampler;
-
 	glm::vec3 dirLight = { -0.819, -0.560, -0.124 };
-	int shadowTextureSize = 2048;
-	float shadowRadius = 75.0f;
-	bool showShadowMap = false;
+	ShadowMapping m_DirLightShadowMap;
 };
