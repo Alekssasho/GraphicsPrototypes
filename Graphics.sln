@@ -5,9 +5,11 @@ VisualStudioVersion = 15.0.27428.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Falcor", "External\Falcor\Framework\Source\Falcor.vcxproj", "{3B602F0E-3834-4F73-B97D-7DFC91597A98}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Simple", "Projects\Simple\Simple.vcxproj", "{484ED92D-7AEA-4E28-A80A-852E817C5B1C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Prototypes", "Projects\Simple\Simple.vcxproj", "{484ED92D-7AEA-4E28-A80A-852E817C5B1C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Techniques", "Projects\Techniques\Techniques.vcxproj", "{10D34622-4517-4C53-8007-F0E4E27324DB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseApplication", "Projects\BaseApplication\BaseApplication.vcxproj", "{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +43,14 @@ Global
 		{10D34622-4517-4C53-8007-F0E4E27324DB}.ReleaseD3D12|x64.Build.0 = ReleaseD3D12|x64
 		{10D34622-4517-4C53-8007-F0E4E27324DB}.ReleaseVK|x64.ActiveCfg = ReleaseD3D12|x64
 		{10D34622-4517-4C53-8007-F0E4E27324DB}.ReleaseVK|x64.Build.0 = ReleaseD3D12|x64
+		{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}.DebugD3D12|x64.ActiveCfg = DebugD3D12|x64
+		{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}.DebugD3D12|x64.Build.0 = DebugD3D12|x64
+		{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}.DebugVK|x64.ActiveCfg = DebugD3D12|x64
+		{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}.DebugVK|x64.Build.0 = DebugD3D12|x64
+		{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}.ReleaseD3D12|x64.ActiveCfg = ReleaseD3D12|x64
+		{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}.ReleaseD3D12|x64.Build.0 = ReleaseD3D12|x64
+		{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}.ReleaseVK|x64.ActiveCfg = ReleaseD3D12|x64
+		{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}.ReleaseVK|x64.Build.0 = ReleaseD3D12|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
