@@ -8,6 +8,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{75486bcf-2d33-4e4d-afcd-5ed76ca6fd52}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers Files">
+      <UniqueIdentifier>{f5de060d-3008-4797-ae38-ccadc1de3073}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Data\Shaders\SimpleModel.slang">
@@ -16,13 +19,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\Simple\ShadowMapPrototype.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\Source\Simple\ShadowMapPrototype.cpp">
+    <ClCompile Include="..\..\Source\Prototypes\ShadowMapPrototype.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Source\Prototypes\ShadowMapPrototype.h">
+      <Filter>Headers Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

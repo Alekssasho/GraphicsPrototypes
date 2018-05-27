@@ -74,7 +74,7 @@
     <ProjectReference Include="..\..\External\Falcor\Framework\Source\Falcor.vcxproj">
       <Project>{3b602f0e-3834-4f73-b97d-7dfc91597a98}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\BaseApplication\BaseApplication.vcxproj">
+    <ProjectReference Include="..\Base\Base.vcxproj">
       <Project>{8cc91021-19d2-4e6e-8b3a-d8774edade0f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\Techniques\Techniques.vcxproj">
@@ -82,10 +82,10 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\Simple\ShadowMapPrototype.h" />
+    <ClInclude Include="..\..\Source\Prototypes\ShadowMapPrototype.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Source\Simple\ShadowMapPrototype.cpp" />
+    <ClCompile Include="..\..\Source\Prototypes\ShadowMapPrototype.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Data\Shaders\SimpleModel.slang" />

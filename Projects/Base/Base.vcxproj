@@ -15,6 +15,7 @@
     <ProjectGuid>{8CC91021-19D2-4E6E-8B3A-D8774EDADE0F}</ProjectGuid>
     <RootNamespace>BaseApplication</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <ProjectName>Base</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugD3D12|x64'" Label="Configuration">
