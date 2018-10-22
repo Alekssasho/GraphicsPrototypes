@@ -35,187 +35,182 @@ using namespace Falcor;
 class ForwardRenderer : public Renderer
 {
 public:
-    void onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext) override;
-    void onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo) override;
-    void onResizeSwapChain(SampleCallbacks* pSample, uint32_t width, uint32_t height) override;
-    bool onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent) override;
-    bool onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent) override;
-    void onGuiRender(SampleCallbacks* pSample, Gui* pGui) override;
-    void onDroppedFile(SampleCallbacks* pSample, const std::string& filename) override;
+	void onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext) override;
+	void onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo) override;
+	void onResizeSwapChain(SampleCallbacks* pSample, uint32_t width, uint32_t height) override;
+	bool onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent) override;
+	bool onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent) override;
+	void onGuiRender(SampleCallbacks* pSample, Gui* pGui) override;
+	void onDroppedFile(SampleCallbacks* pSample, const std::string& filename) override;
 
-    //Testing
-    void onInitializeTesting(SampleCallbacks* pSample) override;
-    void onBeginTestFrame(SampleTest* pSampleTest) override;
+	//Testing
+	void onInitializeTesting(SampleCallbacks* pSample) override;
+	void onBeginTestFrame(SampleTest* pSampleTest) override;
 
 private:
-    Fbo::SharedPtr mpMainFbo;
-    Fbo::SharedPtr mpDepthPassFbo;
-    Fbo::SharedPtr mpResolveFbo;
-    Fbo::SharedPtr mpPostProcessFbo;
+	Fbo::SharedPtr mpMainFbo;
+	Fbo::SharedPtr mpDepthPassFbo;
+	Fbo::SharedPtr mpPostProcessFbo;
 
-    struct ShadowPass
-    {
-        bool updateShadowMap = true;
-        CascadedShadowMaps::UniquePtr pCsm;
-        Texture::SharedPtr pVisibilityBuffer;
-        glm::mat4 camVpAtLastCsmUpdate = glm::mat4();
-    };
-    ShadowPass mShadowPass;
+	struct ShadowPass
+	{
+		bool updateShadowMap = true;
+		CascadedShadowMaps::UniquePtr pCsm;
+		Texture::SharedPtr pVisibilityBuffer;
+		glm::mat4 camVpAtLastCsmUpdate = glm::mat4();
+	};
+	ShadowPass mShadowPass;
 
-    //  SkyBox Pass.
-    struct
-    {
-        SkyBox::UniquePtr pEffect;
-        DepthStencilState::SharedPtr pDS;
-        Sampler::SharedPtr pSampler;
-    } mSkyBox;
+	//  SkyBox Pass.
+	struct
+	{
+		SkyBox::UniquePtr pEffect;
+		DepthStencilState::SharedPtr pDS;
+		Sampler::SharedPtr pSampler;
+	} mSkyBox;
 
-    //  Lighting Pass.
-    struct
-    {
-        GraphicsVars::SharedPtr pVars;
-        GraphicsProgram::SharedPtr pProgram;
-        DepthStencilState::SharedPtr pDsState;
-        RasterizerState::SharedPtr pNoCullRS;
-        BlendState::SharedPtr pAlphaBlendBS;
-    } mLightingPass;
+	//  Lighting Pass.
+	struct
+	{
+		GraphicsVars::SharedPtr pVars;
+		GraphicsProgram::SharedPtr pProgram;
+		DepthStencilState::SharedPtr pDsState;
+		RasterizerState::SharedPtr pNoCullRS;
+		BlendState::SharedPtr pAlphaBlendBS;
+	} mLightingPass;
 
-    struct
-    {
-        GraphicsVars::SharedPtr pVars;
-        GraphicsProgram::SharedPtr pProgram;
-    } mDepthPass;
-
-
-    //  The Temporal Anti-Aliasing Pass.
-    class
-    {
-    public:
-        TemporalAA::UniquePtr pTAA;
-        Fbo::SharedPtr getActiveFbo() { return pTAAFbos[activeFboIndex]; }
-        Fbo::SharedPtr getInactiveFbo()  { return pTAAFbos[1 - activeFboIndex]; }
-        void createFbos(uint32_t width, uint32_t height, const Fbo::Desc & fboDesc)
-        {
-            pTAAFbos[0] = FboHelper::create2D(width, height, fboDesc);
-            pTAAFbos[1] = FboHelper::create2D(width, height, fboDesc);
-        }
-
-        void switchFbos() { activeFboIndex = 1 - activeFboIndex; }
-        void resetFbos()
-        {
-            activeFboIndex = 0;
-            pTAAFbos[0] = nullptr;
-            pTAAFbos[1] = nullptr;
-        }
-
-        void resetFboActiveIndex() { activeFboIndex = 0;}
-
-    private:
-        Fbo::SharedPtr pTAAFbos[2];
-        uint32_t activeFboIndex = 0;
-    } mTAA;
+	struct
+	{
+		GraphicsVars::SharedPtr pVars;
+		GraphicsProgram::SharedPtr pProgram;
+	} mDepthPass;
 
 
-    ToneMapping::UniquePtr mpToneMapper;
+	//  The Temporal Anti-Aliasing Pass.
+	class
+	{
+	public:
+		TemporalAA::UniquePtr pTAA;
+		Fbo::SharedPtr getActiveFbo() { return pTAAFbos[activeFboIndex]; }
+		Fbo::SharedPtr getInactiveFbo()  { return pTAAFbos[1 - activeFboIndex]; }
+		void createFbos(uint32_t width, uint32_t height, const Fbo::Desc & fboDesc)
+		{
+			pTAAFbos[0] = FboHelper::create2D(width, height, fboDesc);
+			pTAAFbos[1] = FboHelper::create2D(width, height, fboDesc);
+		}
 
-    struct
-    {
-        SSAO::UniquePtr pSSAO;
-        FullScreenPass::UniquePtr pApplySSAOPass;
-        GraphicsVars::SharedPtr pVars;
-    } mSSAO;
+		void switchFbos() { activeFboIndex = 1 - activeFboIndex; }
+		void resetFbos()
+		{
+			activeFboIndex = 0;
+			pTAAFbos[0] = nullptr;
+			pTAAFbos[1] = nullptr;
+		}
 
-    FXAA::UniquePtr mpFXAA;
+		void resetFboActiveIndex() { activeFboIndex = 0;}
 
-    void beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint64_t frameId);
-    void endFrame(RenderContext* pContext);
-    void depthPass(RenderContext* pContext);
-    void shadowPass(RenderContext* pContext);
-    void renderSkyBox(RenderContext* pContext);
-    void lightingPass(RenderContext* pContext, Fbo* pTargetFbo);
-    //Need to resolve depth first to pass resolved depth to shadow pass
-    void resolveDepthMSAA(RenderContext* pContext);
-    void resolveMSAA(RenderContext* pContext);
-    void executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
-    void runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo);
-    void postProcess(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
-    void ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
+	private:
+		Fbo::SharedPtr pTAAFbos[2];
+		uint32_t activeFboIndex = 0;
+	} mTAA;
 
 
-    void renderOpaqueObjects(RenderContext* pContext);
-    void renderTransparentObjects(RenderContext* pContext);
+	ToneMapping::UniquePtr mpToneMapper;
 
-        void initSkyBox(const std::string& name);
-    void initPostProcess();
-    void initLightingPass();
-    void initDepthPass();
-    void initShadowPass(uint32_t windowWidth, uint32_t windowHeight);
-    void initSSAO();
-    void updateLightProbe(const LightProbe::SharedPtr& pLight);
-    void initAA(SampleCallbacks* pSample);
+	struct
+	{
+		SSAO::UniquePtr pSSAO;
+		FullScreenPass::UniquePtr pApplySSAOPass;
+		GraphicsVars::SharedPtr pVars;
+	} mSSAO;
 
-    void initControls();
+	FXAA::UniquePtr mpFXAA;
 
-    GraphicsState::SharedPtr mpState;
+	void beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint64_t frameId);
+	void endFrame(RenderContext* pContext);
+	void depthPass(RenderContext* pContext);
+	void shadowPass(RenderContext* pContext);
+	void renderSkyBox(RenderContext* pContext);
+	void lightingPass(RenderContext* pContext, Fbo* pTargetFbo);
+	void executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
+	void runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo);
+	void postProcess(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
+	void ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
+
+
+	void renderOpaqueObjects(RenderContext* pContext);
+	void renderTransparentObjects(RenderContext* pContext);
+
+		void initSkyBox(const std::string& name);
+	void initPostProcess();
+	void initLightingPass();
+	void initDepthPass();
+	void initShadowPass(uint32_t windowWidth, uint32_t windowHeight);
+	void initSSAO();
+	void updateLightProbe(const LightProbe::SharedPtr& pLight);
+	void initAA(SampleCallbacks* pSample);
+
+	void initControls();
+
+	GraphicsState::SharedPtr mpState;
 	ForwardRendererSceneRenderer::SharedPtr mpSceneRenderer;
-    void loadModel(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar);
-    void loadScene(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar);
-    void initScene(SampleCallbacks* pSample, Scene::SharedPtr pScene);
-    void applyCustomSceneVars(const Scene* pScene, const std::string& filename);
-    void resetScene();
+	void loadModel(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar);
+	void loadScene(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar);
+	void initScene(SampleCallbacks* pSample, Scene::SharedPtr pScene);
+	void applyCustomSceneVars(const Scene* pScene, const std::string& filename);
+	void resetScene();
 
-    void setActiveCameraAspectRatio(uint32_t w, uint32_t h);
-    void setSceneSampler(uint32_t maxAniso);
+	void setActiveCameraAspectRatio(uint32_t w, uint32_t h);
+	void setSceneSampler(uint32_t maxAniso);
 
-    Sampler::SharedPtr mpSceneSampler;
+	Sampler::SharedPtr mpSceneSampler;
 
-    struct ProgramControl
-    {
-        bool enabled;
-        bool unsetOnEnabled;
-        std::string define;
-        std::string value;
-    };
+	struct ProgramControl
+	{
+		bool enabled;
+		bool unsetOnEnabled;
+		std::string define;
+		std::string value;
+	};
 
-    enum ControlID
-    {
-        SuperSampling,
-        EnableShadows,
-        EnableReflections,
-        EnableSSAO,
-        EnableHashedAlpha,
-        EnableTransparency,
-        VisualizeCascades,
-        Count
-    };
+	enum ControlID
+	{
+		SuperSampling,
+		EnableShadows,
+		EnableReflections,
+		EnableSSAO,
+		EnableHashedAlpha,
+		EnableTransparency,
+		VisualizeCascades,
+		VisualizeAO,
+		Count
+	};
 
-    enum class SamplePattern : uint32_t
-    {
-        Halton,
-        DX11
-    };
+	enum class SamplePattern : uint32_t
+	{
+		Halton,
+		DX11
+	};
 
-    enum class AAMode
-    {
-        None,
-        MSAA,
-        TAA,
-        FXAA
-    };
+	enum class AAMode
+	{
+		None,
+		TAA,
+		FXAA
+	};
 
-    float mOpacityScale = 0.5f;
-    AAMode mAAMode = AAMode::None;
-    uint32_t mMSAASampleCount = 4;
-    SamplePattern mTAASamplePattern = SamplePattern::Halton;
-    void applyAaMode(SampleCallbacks* pSample);
-    std::vector<ProgramControl> mControls;
-    void applyLightingProgramControl(ControlID controlID);
+	float mOpacityScale = 0.5f;
+	AAMode mAAMode = AAMode::None;
+	SamplePattern mTAASamplePattern = SamplePattern::Halton;
+	void applyAaMode(SampleCallbacks* pSample);
+	std::vector<ProgramControl> mControls;
+	void applyLightingProgramControl(ControlID controlID);
 
-    bool mUseCameraPath = true;
-    void applyCameraPathState();
-    bool mPerMaterialShader = false;
-    bool mEnableDepthPass = true;
-    bool mUseCsSkinning = false;
-    void applyCsSkinningMode();
-    static const std::string skDefaultScene;
+	bool mUseCameraPath = true;
+	void applyCameraPathState();
+	bool mPerMaterialShader = false;
+	bool mEnableDepthPass = true;
+	bool mUseCsSkinning = false;
+	void applyCsSkinningMode();
+	static const std::string skDefaultScene;
 };

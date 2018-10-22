@@ -34,5 +34,11 @@ Texture2D gAOMap;
 
 float4 main(float2 texC : TEXCOORD) : SV_TARGET0
 {
-    return applyAmbientOcclusion(gColor.SampleLevel(gSampler, texC, 0), gAOMap, gSampler, texC);
+	float4 color;
+#ifdef VISUALIZE_AO_MAP
+	color = float4(1.0, 1.0, 1.0, 1.0);
+#else
+	color = gColor.SampleLevel(gSampler, texC, 0);
+#endif
+	return applyAmbientOcclusion(color, gAOMap, gSampler, texC);
 }

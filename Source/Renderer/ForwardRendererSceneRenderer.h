@@ -33,29 +33,29 @@ using namespace Falcor;
 class ForwardRendererSceneRenderer : public SceneRenderer
 {
 public:
-    using SharedPtr = std::shared_ptr<ForwardRendererSceneRenderer>;
-    ~ForwardRendererSceneRenderer() = default;
-    enum class Mode
-    {
-        All,
-        Opaque,
-        Transparent
-    };
+	using SharedPtr = std::shared_ptr<ForwardRendererSceneRenderer>;
+	~ForwardRendererSceneRenderer() = default;
+	enum class Mode
+	{
+		All,
+		Opaque,
+		Transparent
+	};
 
-    static SharedPtr create(const Scene::SharedPtr& pScene);
-    void setRenderMode(Mode renderMode) { mRenderMode = renderMode; }
-    void renderScene(RenderContext* pContext) override;
+	static SharedPtr create(const Scene::SharedPtr& pScene);
+	void setRenderMode(Mode renderMode) { mRenderMode = renderMode; }
+	void renderScene(RenderContext* pContext) override;
 private:
-    bool setPerMeshData(const CurrentWorkingData& currentData, const Mesh* pMesh) override;
-    bool setPerMaterialData(const CurrentWorkingData& currentData, const Material* pMaterial) override;
-    RasterizerState::SharedPtr getRasterizerState(const Material* pMaterial);
+	bool setPerMeshData(const CurrentWorkingData& currentData, const Mesh* pMesh) override;
+	bool setPerMaterialData(const CurrentWorkingData& currentData, const Material* pMaterial) override;
+	RasterizerState::SharedPtr getRasterizerState(const Material* pMaterial);
 	ForwardRendererSceneRenderer(const Scene::SharedPtr& pScene);
-    std::vector<bool> mTransparentMeshes;
-    Mode mRenderMode = Mode::All;
-    bool mHasOpaqueObjects = false;
-    bool mHasTransparentObject = false;
+	std::vector<bool> mTransparentMeshes;
+	Mode mRenderMode = Mode::All;
+	bool mHasOpaqueObjects = false;
+	bool mHasTransparentObject = false;
 
-    RasterizerState::SharedPtr mpDefaultRS;
-    RasterizerState::SharedPtr mpNoCullRS;
-    RasterizerState::SharedPtr mpLastSetRs;
+	RasterizerState::SharedPtr mpDefaultRS;
+	RasterizerState::SharedPtr mpNoCullRS;
+	RasterizerState::SharedPtr mpLastSetRs;
 };

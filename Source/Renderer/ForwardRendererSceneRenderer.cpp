@@ -29,86 +29,86 @@
 
 static bool isMaterialTransparent(const Material* pMaterial)
 {
-    return pMaterial->getBaseColor().a < 1.0f;
+	return pMaterial->getBaseColor().a < 1.0f;
 }
 
 ForwardRendererSceneRenderer::ForwardRendererSceneRenderer(const Scene::SharedPtr& pScene) : SceneRenderer(pScene)
 {
-    for (uint32_t model = 0; model < mpScene->getModelCount(); model++)
-    {
-        const auto& pModel = mpScene->getModel(model);
-        for (uint32_t mesh = 0; mesh < pModel->getMeshCount(); mesh++)
-        {
-            const auto& pMesh = pModel->getMesh(mesh);
-            uint32_t id = pMesh->getId();
-            if (mTransparentMeshes.size() <= id) mTransparentMeshes.resize(id + 1);
-            bool transparent = isMaterialTransparent(pMesh->getMaterial().get());
-            mHasOpaqueObjects = mHasOpaqueObjects || (transparent == false);
-            mHasTransparentObject = mHasTransparentObject || transparent;
-            mTransparentMeshes[id] = transparent;
-        }
-    }
+	for (uint32_t model = 0; model < mpScene->getModelCount(); model++)
+	{
+		const auto& pModel = mpScene->getModel(model);
+		for (uint32_t mesh = 0; mesh < pModel->getMeshCount(); mesh++)
+		{
+			const auto& pMesh = pModel->getMesh(mesh);
+			uint32_t id = pMesh->getId();
+			if (mTransparentMeshes.size() <= id) mTransparentMeshes.resize(id + 1);
+			bool transparent = isMaterialTransparent(pMesh->getMaterial().get());
+			mHasOpaqueObjects = mHasOpaqueObjects || (transparent == false);
+			mHasTransparentObject = mHasTransparentObject || transparent;
+			mTransparentMeshes[id] = transparent;
+		}
+	}
 
-    RasterizerState::Desc rsDesc;
-    mpDefaultRS = RasterizerState::create(rsDesc);
-    rsDesc.setCullMode(RasterizerState::CullMode::None);
-    mpNoCullRS = RasterizerState::create(rsDesc);
+	RasterizerState::Desc rsDesc;
+	mpDefaultRS = RasterizerState::create(rsDesc);
+	rsDesc.setCullMode(RasterizerState::CullMode::None);
+	mpNoCullRS = RasterizerState::create(rsDesc);
 }
 
 ForwardRendererSceneRenderer::SharedPtr ForwardRendererSceneRenderer::create(const Scene::SharedPtr& pScene)
 {
-    return SharedPtr(new ForwardRendererSceneRenderer(pScene));
+	return SharedPtr(new ForwardRendererSceneRenderer(pScene));
 }
 
 bool ForwardRendererSceneRenderer::setPerMeshData(const CurrentWorkingData& currentData, const Mesh* pMesh)
 {
-    switch (mRenderMode)
-    {
-    case Mode::All:
-        return true;
-    case Mode::Opaque:
-        return mTransparentMeshes[pMesh->getId()] == false;
-    case Mode::Transparent:
-        return mTransparentMeshes[pMesh->getId()];
-    default:
-        should_not_get_here();
-        return false;
-    }
+	switch (mRenderMode)
+	{
+	case Mode::All:
+		return true;
+	case Mode::Opaque:
+		return mTransparentMeshes[pMesh->getId()] == false;
+	case Mode::Transparent:
+		return mTransparentMeshes[pMesh->getId()];
+	default:
+		should_not_get_here();
+		return false;
+	}
 }
 
 void ForwardRendererSceneRenderer::renderScene(RenderContext* pContext)
 {
-    switch (mRenderMode)
-    {
-    case Mode::Opaque:
-        if (mHasOpaqueObjects == false) return;
-        break;
-    case Mode::Transparent:
-        if (mHasTransparentObject == false) return;
-    }
-    SceneRenderer::renderScene(pContext);
+	switch (mRenderMode)
+	{
+	case Mode::Opaque:
+		if (mHasOpaqueObjects == false) return;
+		break;
+	case Mode::Transparent:
+		if (mHasTransparentObject == false) return;
+	}
+	SceneRenderer::renderScene(pContext);
 }
 
 RasterizerState::SharedPtr ForwardRendererSceneRenderer::getRasterizerState(const Material* pMaterial)
 {
-    if (pMaterial->getAlphaMode() == AlphaModeMask)
-    {
-        return mpNoCullRS;
-    }
-    else
-    {
-        return mpDefaultRS;
-    }
+	if (pMaterial->getAlphaMode() == AlphaModeMask)
+	{
+		return mpNoCullRS;
+	}
+	else
+	{
+		return mpDefaultRS;
+	}
 }
 
 bool ForwardRendererSceneRenderer::setPerMaterialData(const CurrentWorkingData& currentData, const Material* pMaterial)
 {
-    const auto& pRsState = getRasterizerState(currentData.pMaterial);
-    if (pRsState != mpLastSetRs)
-    {
-        currentData.pContext->getGraphicsState()->setRasterizerState(pRsState);
-        mpLastSetRs = pRsState;
-    }
+	const auto& pRsState = getRasterizerState(currentData.pMaterial);
+	if (pRsState != mpLastSetRs)
+	{
+		currentData.pContext->getGraphicsState()->setRasterizerState(pRsState);
+		mpLastSetRs = pRsState;
+	}
 
-    return SceneRenderer::setPerMaterialData(currentData, pMaterial);
+	return SceneRenderer::setPerMaterialData(currentData, pMaterial);
 }
