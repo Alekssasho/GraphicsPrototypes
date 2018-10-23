@@ -90,22 +90,28 @@ void ForwardRenderer::initDepthPass()
 
 void ForwardRenderer::initLightingPass()
 {
-	mLightingPass.pProgram = GraphicsProgram::createFromFile("ForwardRenderer.slang", "vs", "ps");
-	mLightingPass.pProgram->addDefine("_LIGHT_COUNT", std::to_string(mpSceneRenderer->getScene()->getLightCount()));
+	mLightingPass.pLightingFullscreenPass = FullScreenPass::create("LightingPass.ps.slang");
+	mLightingPass.pVars = GraphicsVars::create(mLightingPass.pLightingFullscreenPass->getProgram()->getReflector());
+}
+
+void ForwardRenderer::initGBufferPass()
+{
+	mGBufferPass.pProgram = GraphicsProgram::createFromFile("GBufferPass.slang", "vs", "ps");
+	mGBufferPass.pProgram->addDefine("_LIGHT_COUNT", std::to_string(mpSceneRenderer->getScene()->getLightCount()));
 	initControls();
-	mLightingPass.pVars = GraphicsVars::create(mLightingPass.pProgram->getReflector());
+	mGBufferPass.pVars = GraphicsVars::create(mGBufferPass.pProgram->getReflector());
     
 	DepthStencilState::Desc dsDesc;
 	dsDesc.setDepthTest(true).setStencilTest(false)./*setDepthWriteMask(false).*/setDepthFunc(DepthStencilState::Func::LessEqual);
-	mLightingPass.pDsState = DepthStencilState::create(dsDesc);
+	mGBufferPass.pDsState = DepthStencilState::create(dsDesc);
 
 	RasterizerState::Desc rsDesc;
 	rsDesc.setCullMode(RasterizerState::CullMode::None);
-	mLightingPass.pNoCullRS = RasterizerState::create(rsDesc);
+	mGBufferPass.pNoCullRS = RasterizerState::create(rsDesc);
 
 	BlendState::Desc bsDesc;
 	bsDesc.setRtBlend(0, true).setRtParams(0, BlendState::BlendOp::Add, BlendState::BlendOp::Add, BlendState::BlendFunc::SrcAlpha, BlendState::BlendFunc::OneMinusSrcAlpha, BlendState::BlendFunc::One, BlendState::BlendFunc::Zero);
-	mLightingPass.pAlphaBlendBS = BlendState::create(bsDesc);
+	mGBufferPass.pAlphaBlendBS = BlendState::create(bsDesc);
 }
 
 void ForwardRenderer::initShadowPass(uint32_t windowWidth, uint32_t windowHeight)
@@ -192,6 +198,7 @@ void ForwardRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pScen
 	setSceneSampler(mpSceneSampler ? mpSceneSampler->getMaxAnisotropy() : 4);
 	setActiveCameraAspectRatio(pSample->getCurrentFbo()->getWidth(), pSample->getCurrentFbo()->getHeight());
 	initDepthPass();
+	initGBufferPass();
 	initLightingPass();
 	auto pTargetFbo = pSample->getCurrentFbo();
 	initShadowPass(pTargetFbo->getWidth(), pTargetFbo->getHeight());
@@ -315,12 +322,13 @@ void ForwardRenderer::beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint6
 {
 	pContext->pushGraphicsState(mpState);
 	pContext->clearFbo(mpMainFbo.get(), glm::vec4(0.7f, 0.7f, 0.7f, 1.0f), 1, 0, FboAttachmentType::All);
+	pContext->clearFbo(mpGBufferFbo.get(), glm::vec4(0.7f, 0.7f, 0.7f, 1.0f), 1, 0, FboAttachmentType::All);
 	pContext->clearFbo(mpPostProcessFbo.get(), glm::vec4(), 1, 0, FboAttachmentType::Color);
 
 	if (mAAMode == AAMode::TAA)
 	{
 		glm::vec2 targetResolution = glm::vec2(pTargetFbo->getWidth(), pTargetFbo->getHeight());
-		pContext->clearRtv(mpMainFbo->getColorTexture(2)->getRTV().get(), vec4(0));
+		pContext->clearRtv(mpGBufferFbo->getColorTexture(2)->getRTV().get(), vec4(0));
 
 		//  Select the sample pattern and set the camera jitter
 		const auto& samplePattern = (mTAASamplePattern == SamplePattern::Halton) ? kHaltonSamplePattern : kDX11SamplePattern;
@@ -362,18 +370,35 @@ void ForwardRenderer::depthPass(RenderContext* pContext)
 
 void ForwardRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 {
-	MarkerScope scope(pContext, "Lighting pass");
+	MarkerScope scope(pContext, "Ligthing pass");
 	PROFILE(lightingPass);
-	mpState->setProgram(mLightingPass.pProgram);
-	mpState->setDepthStencilState(mEnableDepthPass ? mLightingPass.pDsState : nullptr);
+
+	mLightingPass.pVars->setTexture("gGBufferTexture0", mpGBufferFbo->getColorTexture(0));
+	mLightingPass.pVars->setTexture("gGBufferTexture1", mpGBufferFbo->getColorTexture(1));
+	if (mGBufferDebugMode != GBufferDebugMode::None)
+	{
+		mLightingPass.pVars["Globals"]["gDebugMode"] = (uint32_t)mGBufferDebugMode;
+	}
+
 	pContext->setGraphicsVars(mLightingPass.pVars);
-	ConstantBuffer::SharedPtr pCB = mLightingPass.pVars->getConstantBuffer("PerFrameCB");
+
+	mLightingPass.pLightingFullscreenPass->execute(pContext);
+}
+
+void ForwardRenderer::gBufferPass(RenderContext* pContext, Fbo* pTargetFbo)
+{
+	MarkerScope scope(pContext, "G-BUffer pass");
+	PROFILE(gBufferPass);
+	mpState->setProgram(mGBufferPass.pProgram);
+	mpState->setDepthStencilState(mEnableDepthPass ? mGBufferPass.pDsState : nullptr);
+	pContext->setGraphicsVars(mGBufferPass.pVars);
+	ConstantBuffer::SharedPtr pCB = mGBufferPass.pVars->getConstantBuffer("PerFrameCB");
 	pCB["gOpacityScale"] = mOpacityScale;
 
 	if (mControls[ControlID::EnableShadows].enabled)
 	{
 		pCB["camVpAtLastCsmUpdate"] = mShadowPass.camVpAtLastCsmUpdate;
-		mLightingPass.pVars->setTexture("gVisibilityBuffer", mShadowPass.pVisibilityBuffer);
+		mGBufferPass.pVars->setTexture("gVisibilityBuffer", mShadowPass.pVisibilityBuffer);
 	}
 
 	if (mAAMode == AAMode::TAA)
@@ -405,8 +430,8 @@ void ForwardRenderer::renderOpaqueObjects(RenderContext* pContext)
 void ForwardRenderer::renderTransparentObjects(RenderContext* pContext)
 {
 	mpSceneRenderer->setRenderMode(ForwardRendererSceneRenderer::Mode::Transparent);
-	mpState->setBlendState(mLightingPass.pAlphaBlendBS);
-	mpState->setRasterizerState(mLightingPass.pNoCullRS);
+	mpState->setBlendState(mGBufferPass.pAlphaBlendBS);
+	mpState->setRasterizerState(mGBufferPass.pNoCullRS);
 	mpSceneRenderer->renderScene(pContext);
 	mpState->setBlendState(nullptr);
 	mpState->setRasterizerState(nullptr);
@@ -433,7 +458,7 @@ void ForwardRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 		PROFILE(runTAA);
 		//  Get the Current Color and Motion Vectors
 		const Texture::SharedPtr pCurColor = pColorFbo->getColorTexture(0);
-		const Texture::SharedPtr pMotionVec = mpMainFbo->getColorTexture(2);
+		const Texture::SharedPtr pMotionVec = mpGBufferFbo->getColorTexture(2);
 
 		//  Get the Previous Color
 		const Texture::SharedPtr pPrevColor = mTAA.getInactiveFbo()->getColorTexture(0);
@@ -457,8 +482,8 @@ void ForwardRenderer::ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr p
 	if (mControls[EnableSSAO].enabled)
 	{
 		MarkerScope scope(pContext, "SSAO");
-		Texture::SharedPtr pDepth = mpMainFbo->getDepthStencilTexture();
-		Texture::SharedPtr pAOMap = mSSAO.pSSAO->generateAOMap(pContext, mpSceneRenderer->getScene()->getActiveCamera().get(), pDepth, mpMainFbo->getColorTexture(1));
+		Texture::SharedPtr pDepth = mpGBufferFbo->getDepthStencilTexture();
+		Texture::SharedPtr pAOMap = mSSAO.pSSAO->generateAOMap(pContext, mpSceneRenderer->getScene()->getActiveCamera().get(), pDepth, mpGBufferFbo->getColorTexture(1));
 		mSSAO.pVars->setTexture("gColor", mpPostProcessFbo->getColorTexture(0));
 		mSSAO.pVars->setTexture("gAOMap", pAOMap);
 
@@ -495,6 +520,8 @@ void ForwardRenderer::onFrameRender(SampleCallbacks* pSample, RenderContext::Sha
 {
 	if (mpSceneRenderer)
 	{
+		Program::reloadAllPrograms();
+
 		MarkerScope scope(pRenderContext.get(), "Frame");
 		beginFrame(pRenderContext.get(), pTargetFbo.get(), pSample->getFrameID());
 		{
@@ -504,9 +531,20 @@ void ForwardRenderer::onFrameRender(SampleCallbacks* pSample, RenderContext::Sha
 
 		depthPass(pRenderContext.get());
 		shadowPass(pRenderContext.get());
-		mpState->setFbo(mpMainFbo);
+		mpState->setFbo(mpGBufferFbo);
 		renderSkyBox(pRenderContext.get());
+		gBufferPass(pRenderContext.get(), pTargetFbo.get());
+
+		mpState->setFbo(mpMainFbo);
 		lightingPass(pRenderContext.get(), pTargetFbo.get());
+
+		if (mGBufferDebugMode != GBufferDebugMode::None)
+		{
+			pRenderContext->blit(mpMainFbo->getColorTexture(0)->getSRV(), pTargetFbo->getRenderTargetView(0));
+
+			// Do not do any post process/ao/aa
+			return;
+		}
 
 		Fbo::SharedPtr pPostProcessDst = mControls[EnableSSAO].enabled ? mpPostProcessFbo : pTargetFbo;
 		postProcess(pRenderContext.get(), pPostProcessDst);
@@ -646,6 +684,8 @@ int main(int argc, char** argv)
 	SampleConfig config;
 	config.windowDesc.title = "Falcor Forward Renderer";
 	config.windowDesc.resizableWindow = false;
+	config.windowDesc.width = 1280;
+	config.windowDesc.height = 720;
 #ifdef _WIN32
 	Sample::run(config, pRenderer);
 #else

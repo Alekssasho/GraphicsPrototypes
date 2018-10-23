@@ -79,19 +79,21 @@ PsOut ps(MainVsOut vOut, float4 pixelCrd : SV_POSITION)
 
     float4 finalColor = float4(0, 0, 0, 1);
 
-    [unroll]
-    for (uint l = 0; l < _LIGHT_COUNT; l++)
-    {
-        float shadowFactor = 1;
-#ifdef _ENABLE_SHADOWS
-        if (l == 0)
-        {
-            shadowFactor = gVisibilityBuffer.Load(int3(vOut.vsData.posH.xy, 0)).r;
-            shadowFactor *= sd.opacity;
-        }
-#endif
-        finalColor.rgb += evalMaterial(sd, gLights[l], shadowFactor).color.rgb;
-    }
+//    [unroll]
+//    for (uint l = 0; l < _LIGHT_COUNT; l++)
+//    {
+//        float shadowFactor = 1;
+//#ifdef _ENABLE_SHADOWS
+//        if (l == 0)
+//        {
+//            shadowFactor = gVisibilityBuffer.Load(int3(vOut.vsData.posH.xy, 0)).r;
+//            shadowFactor *= sd.opacity;
+//        }
+//#endif
+//        finalColor.rgb += evalMaterial(sd, gLights[l], shadowFactor).color.rgb;
+//    }
+
+    finalColor.rgb = sd.diffuse.rgb;
 
     // Add the emissive component
     finalColor.rgb += sd.emissive;

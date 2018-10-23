@@ -48,6 +48,7 @@ public:
 	void onBeginTestFrame(SampleTest* pSampleTest) override;
 
 private:
+	Fbo::SharedPtr mpGBufferFbo;
 	Fbo::SharedPtr mpMainFbo;
 	Fbo::SharedPtr mpDepthPassFbo;
 	Fbo::SharedPtr mpPostProcessFbo;
@@ -69,7 +70,7 @@ private:
 		Sampler::SharedPtr pSampler;
 	} mSkyBox;
 
-	//  Lighting Pass.
+	//  GBufer Pass.
 	struct
 	{
 		GraphicsVars::SharedPtr pVars;
@@ -77,6 +78,13 @@ private:
 		DepthStencilState::SharedPtr pDsState;
 		RasterizerState::SharedPtr pNoCullRS;
 		BlendState::SharedPtr pAlphaBlendBS;
+	} mGBufferPass;
+
+	//  Lighting Pass.
+	struct
+	{
+		GraphicsVars::SharedPtr pVars;
+		FullScreenPass::UniquePtr pLightingFullscreenPass;
 	} mLightingPass;
 
 	struct
@@ -131,6 +139,7 @@ private:
 	void depthPass(RenderContext* pContext);
 	void shadowPass(RenderContext* pContext);
 	void renderSkyBox(RenderContext* pContext);
+	void gBufferPass(RenderContext* pContext, Fbo* pTargetFbo);
 	void lightingPass(RenderContext* pContext, Fbo* pTargetFbo);
 	void executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
 	void runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo);
@@ -141,8 +150,9 @@ private:
 	void renderOpaqueObjects(RenderContext* pContext);
 	void renderTransparentObjects(RenderContext* pContext);
 
-		void initSkyBox(const std::string& name);
+	void initSkyBox(const std::string& name);
 	void initPostProcess();
+	void initGBufferPass();
 	void initLightingPass();
 	void initDepthPass();
 	void initShadowPass(uint32_t windowWidth, uint32_t windowHeight);
@@ -213,4 +223,13 @@ private:
 	bool mUseCsSkinning = false;
 	void applyCsSkinningMode();
 	static const std::string skDefaultScene;
+
+	enum class GBufferDebugMode
+	{
+		None,
+		Color,
+		Normal,
+	};
+
+	GBufferDebugMode mGBufferDebugMode = GBufferDebugMode::None;
 };

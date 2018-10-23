@@ -84,7 +84,8 @@
   <ItemGroup>
     <None Include="..\..\Source\Renderer\Data\ApplyAO.ps.slang" />
     <None Include="..\..\Source\Renderer\Data\DepthPass.ps.slang" />
-    <None Include="..\..\Source\Renderer\Data\ForwardRenderer.slang" />
+    <None Include="..\..\Source\Renderer\Data\GBufferPass.slang" />
+    <None Include="..\..\Source\Renderer\Data\LightingPass.ps.slang" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

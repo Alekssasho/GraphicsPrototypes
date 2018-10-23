@@ -43,9 +43,12 @@
     <None Include="..\..\Source\Renderer\Data\DepthPass.ps.slang">
       <Filter>Data</Filter>
     </None>
-    <None Include="..\..\Source\Renderer\Data\ForwardRenderer.slang">
+    <None Include="packages.config" />
+    <None Include="..\..\Source\Renderer\Data\GBufferPass.slang">
       <Filter>Data</Filter>
     </None>
-    <None Include="packages.config" />
+    <None Include="..\..\Source\Renderer\Data\LightingPass.ps.slang">
+      <Filter>Data</Filter>
+    </None>
   </ItemGroup>
 </Project>

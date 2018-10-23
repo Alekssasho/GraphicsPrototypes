@@ -34,6 +34,13 @@ const Gui::DropdownList aaModeList =
 	{ 2, "FXAA" }
 };
 
+const Gui::DropdownList gBufferDebugModeList =
+{
+	{ 0, "None"},
+	{ 1, "Color" },
+	{ 2, "Normal" }
+};
+
 
 void ForwardRenderer::initControls()
 {
@@ -61,12 +68,12 @@ void ForwardRenderer::applyLightingProgramControl(ControlID controlId)
 		bool add = control.unsetOnEnabled ? !control.enabled : control.enabled;
 		if (add)
 		{
-			mLightingPass.pProgram->addDefine(control.define, control.value);
+			mGBufferPass.pProgram->addDefine(control.define, control.value);
 			if (controlId == ControlID::EnableHashedAlpha) mDepthPass.pProgram->addDefine(control.define, control.value);
 		}
 		else
 		{
-			mLightingPass.pProgram->removeDefine(control.define);
+			mGBufferPass.pProgram->removeDefine(control.define);
 			if (controlId == ControlID::EnableHashedAlpha) mDepthPass.pProgram->removeDefine(control.define);
 		}
 	}
@@ -74,7 +81,7 @@ void ForwardRenderer::applyLightingProgramControl(ControlID controlId)
 
 void ForwardRenderer::applyAaMode(SampleCallbacks* pSample)
 {
-	if (mLightingPass.pProgram == nullptr) return;
+	if (mGBufferPass.pProgram == nullptr) return;
 
 	uint32_t w = pSample->getCurrentFbo()->getWidth();
 	uint32_t h = pSample->getCurrentFbo()->getHeight();
@@ -88,8 +95,8 @@ void ForwardRenderer::applyAaMode(SampleCallbacks* pSample)
 
 	if (mAAMode == AAMode::TAA)
 	{
-		mLightingPass.pProgram->removeDefine("INTERPOLATION_MODE");
-		mLightingPass.pProgram->addDefine("_OUTPUT_MOTION_VECTORS");
+		mGBufferPass.pProgram->removeDefine("INTERPOLATION_MODE");
+		mGBufferPass.pProgram->addDefine("_OUTPUT_MOTION_VECTORS");
 		fboDesc.setColorTarget(2, ResourceFormat::RG16Float);
 
 		Fbo::Desc taaFboDesc;
@@ -98,14 +105,20 @@ void ForwardRenderer::applyAaMode(SampleCallbacks* pSample)
 	}
 	else
 	{
-		mLightingPass.pProgram->removeDefine("_OUTPUT_MOTION_VECTORS");
+		mGBufferPass.pProgram->removeDefine("_OUTPUT_MOTION_VECTORS");
 		applyLightingProgramControl(SuperSampling);
 		fboDesc.setSampleCount(1);
 	}
 
-	mpMainFbo = FboHelper::create2D(w, h, fboDesc);
+	mpGBufferFbo = FboHelper::create2D(w, h, fboDesc);
 	mpDepthPassFbo = Fbo::create();
-	mpDepthPassFbo->attachDepthStencilTarget(mpMainFbo->getDepthStencilTexture());
+	mpDepthPassFbo->attachDepthStencilTarget(mpGBufferFbo->getDepthStencilTexture());
+
+	{
+		Fbo::Desc mainDesc;
+		mainDesc.setColorTarget(0, ResourceFormat::RGBA32Float);
+		mpMainFbo = FboHelper::create2D(w, h, mainDesc);
+	}
 }
 
 void ForwardRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
@@ -197,6 +210,22 @@ void ForwardRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 				setSceneSampler(maxAniso);
 			}
 
+			pGui->endGroup();
+		}
+
+		if (pGui->beginGroup("G-Buffer"))
+		{
+			if (pGui->addDropdown("Debug Mode", gBufferDebugModeList, (uint32_t&)mGBufferDebugMode))
+			{
+				if (mGBufferDebugMode == GBufferDebugMode::None)
+				{
+					mLightingPass.pLightingFullscreenPass->getProgram()->removeDefine("DEBUG_MODE");
+				}
+				else
+				{
+					mLightingPass.pLightingFullscreenPass->getProgram()->addDefine("DEBUG_MODE");
+				}
+			}
 			pGui->endGroup();
 		}
 
