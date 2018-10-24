@@ -90,14 +90,18 @@ void ForwardRenderer::initDepthPass()
 
 void ForwardRenderer::initLightingPass()
 {
-	mLightingPass.pLightingFullscreenPass = FullScreenPass::create("LightingPass.ps.slang");
+	Program::DefineList defines;
+	defines.add("_LIGHT_COUNT", std::to_string(mpSceneRenderer->getScene()->getLightCount()));
+
+	mLightingPass.pLightingFullscreenPass = FullScreenPass::create("LightingPass.ps.slang", defines);
 	mLightingPass.pVars = GraphicsVars::create(mLightingPass.pLightingFullscreenPass->getProgram()->getReflector());
+
+	mLightingPass.LightArrayOffset = mLightingPass.pVars["PerFrame"]->getVariableOffset("gLights[0]");
 }
 
 void ForwardRenderer::initGBufferPass()
 {
 	mGBufferPass.pProgram = GraphicsProgram::createFromFile("GBufferPass.slang", "vs", "ps");
-	mGBufferPass.pProgram->addDefine("_LIGHT_COUNT", std::to_string(mpSceneRenderer->getScene()->getLightCount()));
 	initControls();
 	mGBufferPass.pVars = GraphicsVars::create(mGBufferPass.pProgram->getReflector());
     
@@ -379,6 +383,19 @@ void ForwardRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 	{
 		mLightingPass.pVars["Globals"]["gDebugMode"] = (uint32_t)mGBufferDebugMode;
 	}
+
+	// Set ligth information
+	auto perFrameCB = mLightingPass.pVars["PerFrame"].get();
+	if (mLightingPass.LightArrayOffset != ConstantBuffer::kInvalidOffset)
+	{
+		for (uint_t i = 0; i < mpSceneRenderer->getScene()->getLightCount(); i++)
+		{
+			mpSceneRenderer->getScene()->getLight(i)->setIntoProgramVars(mLightingPass.pVars.get(), perFrameCB, mLightingPass.LightArrayOffset + (i * Light::getShaderStructSize()));
+		}
+	}
+
+	// Set camera information
+	mpSceneRenderer->getScene()->getActiveCamera()->setIntoConstantBuffer(perFrameCB, "gCamera");
 
 	pContext->setGraphicsVars(mLightingPass.pVars);
 

@@ -25,12 +25,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
+__import Shading;
+
+
 Texture2D gGBufferTexture0;
 Texture2D gGBufferTexture1;
 
 layout(binding = 0) cbuffer Globals : register(b0)
 {
 	uint gDebugMode;
+}
+
+layout(binding = 1) cbuffer PerFrame : register(b1)
+{
+    CameraData gCamera;
+    LightData gLights[_LIGHT_COUNT];
 }
 
 #ifdef DEBUG_MODE

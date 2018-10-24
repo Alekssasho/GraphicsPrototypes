@@ -85,6 +85,7 @@ private:
 	{
 		GraphicsVars::SharedPtr pVars;
 		FullScreenPass::UniquePtr pLightingFullscreenPass;
+		size_t LightArrayOffset;
 	} mLightingPass;
 
 	struct
