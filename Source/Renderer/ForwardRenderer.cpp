@@ -62,26 +62,6 @@ struct MarkerScope
 
 const std::string ForwardRenderer::skDefaultScene = "Arcade/Arcade.fscene";
 
-//  Halton Sampler Pattern.
-static const float kHaltonSamplePattern[8][2] = { { 1.0f / 2.0f - 0.5f, 1.0f / 3.0f - 0.5f },
-{ 1.0f / 4.0f - 0.5f, 2.0f / 3.0f - 0.5f },
-{ 3.0f / 4.0f - 0.5f, 1.0f / 9.0f - 0.5f },
-{ 1.0f / 8.0f - 0.5f, 4.0f / 9.0f - 0.5f },
-{ 5.0f / 8.0f - 0.5f, 7.0f / 9.0f - 0.5f },
-{ 3.0f / 8.0f - 0.5f, 2.0f / 9.0f - 0.5f },
-{ 7.0f / 8.0f - 0.5f, 5.0f / 9.0f - 0.5f },
-{ 0.5f / 8.0f - 0.5f, 8.0f / 9.0f - 0.5f } };
-
-//  DirectX 11 Sample Pattern.
-static const float kDX11SamplePattern[8][2] = { { 1.0f / 16.0f, -3.0f / 16.0f },
-{ -1.0f / 16.0f, 3.0f / 16.0f },
-{ 5.0f / 16.0f, 1.0f / 16.0f },
-{ -3.0f / 16.0f, -5.0f / 16.0f },
-{ -5.0f / 16.0f, 5.0f / 16.0f },
-{ -7.0f / 16.0f, -1.0f / 16.0f },
-{ 3.0f / 16.0f, 7.0f / 16.0f },
-{ 7.0f / 16.0f, -7.0f / 16.0f } };
-
 void ForwardRenderer::initDepthPass()
 {
 	mDepthPass.pProgram = GraphicsProgram::createFromFile("DepthPass.ps.slang", "", "main");
@@ -120,7 +100,7 @@ void ForwardRenderer::initGBufferPass()
 
 void ForwardRenderer::initShadowPass(uint32_t windowWidth, uint32_t windowHeight)
 {
-	mShadowPass.pCsm = CascadedShadowMaps::create(2048, 2048, windowWidth, windowHeight, mpSceneRenderer->getScene()->getLight(0), mpSceneRenderer->getScene()->shared_from_this(), 4);
+	mShadowPass.pCsm = CascadedShadowMaps::create(mpSceneRenderer->getScene()->getLight(0), 2048, 2048, windowWidth, windowHeight, mpSceneRenderer->getScene()->shared_from_this());
 	mShadowPass.pCsm->setFilterMode(CsmFilterHwPcf);
 	//mShadowPass.pCsm->setVsmLightBleedReduction(0.3f);
 	//mShadowPass.pCsm->setVsmMaxAnisotropy(4);
@@ -266,7 +246,7 @@ void ForwardRenderer::initSkyBox(const std::string& name)
 	Sampler::Desc samplerDesc;
 	samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
 	mSkyBox.pSampler = Sampler::create(samplerDesc);
-	mSkyBox.pEffect = SkyBox::createFromTexture(name, true, mSkyBox.pSampler);
+	mSkyBox.pEffect = SkyBox::create(name, true, mSkyBox.pSampler);
 	DepthStencilState::Desc dsDesc;
 	dsDesc.setDepthFunc(DepthStencilState::Func::Always);
 	mSkyBox.pDS = DepthStencilState::create(dsDesc);
@@ -303,7 +283,7 @@ void ForwardRenderer::initPostProcess()
 	mpToneMapper = ToneMapping::create(ToneMapping::Operator::Aces);
 }
 
-void ForwardRenderer::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+void ForwardRenderer::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)
 {
 	mpState = GraphicsState::create();
 	initPostProcess();
@@ -333,12 +313,6 @@ void ForwardRenderer::beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint6
 	{
 		glm::vec2 targetResolution = glm::vec2(pTargetFbo->getWidth(), pTargetFbo->getHeight());
 		pContext->clearRtv(mpGBufferFbo->getColorTexture(2)->getRTV().get(), vec4(0));
-
-		//  Select the sample pattern and set the camera jitter
-		const auto& samplePattern = (mTAASamplePattern == SamplePattern::Halton) ? kHaltonSamplePattern : kDX11SamplePattern;
-		static_assert(arraysize(kHaltonSamplePattern) == arraysize(kDX11SamplePattern), "Mismatch in the array size of the sample patterns");
-		uint32_t patternIndex = uint32_t(frameId % arraysize(kHaltonSamplePattern));
-		mpSceneRenderer->getScene()->getActiveCamera()->setJitter(samplePattern[patternIndex][0] / targetResolution.x, samplePattern[patternIndex][1] / targetResolution.y);
 	}
 }
 
@@ -351,7 +325,7 @@ void ForwardRenderer::postProcess(RenderContext* pContext, Fbo::SharedPtr pTarge
 {
 	PROFILE(postProcess);    
 	MarkerScope scope(pContext, "Post Process");
-	mpToneMapper->execute(pContext, mpMainFbo, pTargetFbo);
+	mpToneMapper->execute(pContext, mpMainFbo->getColorTexture(0), pTargetFbo);
 }
 
 void ForwardRenderer::depthPass(RenderContext* pContext)
@@ -388,7 +362,7 @@ void ForwardRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 	auto perFrameCB = mLightingPass.pVars["PerFrame"].get();
 	if (mLightingPass.LightArrayOffset != ConstantBuffer::kInvalidOffset)
 	{
-		for (uint_t i = 0; i < mpSceneRenderer->getScene()->getLightCount(); i++)
+		for (auto i = 0u; i < mpSceneRenderer->getScene()->getLightCount(); i++)
 		{
 			mpSceneRenderer->getScene()->getLight(i)->setIntoProgramVars(mLightingPass.pVars.get(), perFrameCB, mLightingPass.LightArrayOffset + (i * Light::getShaderStructSize()));
 		}
@@ -533,7 +507,7 @@ void ForwardRenderer::onBeginTestFrame(SampleTest* pSampleTest)
 	}
 }
 
-void ForwardRenderer::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
+void ForwardRenderer::onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
 	if (mpSceneRenderer)
 	{
@@ -638,7 +612,7 @@ void ForwardRenderer::onResizeSwapChain(SampleCallbacks* pSample, uint32_t width
 	mpPostProcessFbo = FboHelper::create2D(width, height, fboDesc);
 
 	applyAaMode(pSample);
-	mShadowPass.pCsm->resizeVisibilityBuffer(width, height);
+	mShadowPass.pCsm->onResize(width, height);
 
 	if(mpSceneRenderer)
 	{
@@ -703,6 +677,7 @@ int main(int argc, char** argv)
 	config.windowDesc.resizableWindow = false;
 	config.windowDesc.width = 1280;
 	config.windowDesc.height = 720;
+	config.deviceDesc.apiMajorVersion = 11;
 #ifdef _WIN32
 	Sample::run(config, pRenderer);
 #else
