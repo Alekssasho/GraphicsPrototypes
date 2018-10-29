@@ -37,9 +37,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\Source\Renderer\Data\ApplyAO.ps.slang">
-      <Filter>Data</Filter>
-    </None>
     <None Include="..\..\Source\Renderer\Data\DepthPass.ps.slang">
       <Filter>Data</Filter>
     </None>
@@ -48,6 +45,9 @@
       <Filter>Data</Filter>
     </None>
     <None Include="..\..\Source\Renderer\Data\LightingPass.ps.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="..\..\Source\Renderer\Data\ApplyAO.slang">
       <Filter>Data</Filter>
     </None>
   </ItemGroup>

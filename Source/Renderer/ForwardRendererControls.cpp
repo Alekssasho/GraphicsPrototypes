@@ -37,10 +37,12 @@ const Gui::DropdownList aaModeList =
 const Gui::DropdownList gBufferDebugModeList =
 {
 	{ 0, "None"},
-	{ 1, "Color" },
-	{ 2, "Normal" }
+	{ 1, "Diffuse" },
+	{ 2, "Specular" },
+	{ 3, "Normal" },
+	{ 4, "Roughness" },
+	{ 5, "Depth" },
 };
-
 
 void ForwardRenderer::initControls()
 {
@@ -69,11 +71,13 @@ void ForwardRenderer::applyLightingProgramControl(ControlID controlId)
 		if (add)
 		{
 			mGBufferPass.pProgram->addDefine(control.define, control.value);
+			mLightingPass.pLightingFullscreenPass->getProgram()->addDefine(control.define, control.value);
 			if (controlId == ControlID::EnableHashedAlpha) mDepthPass.pProgram->addDefine(control.define, control.value);
 		}
 		else
 		{
 			mGBufferPass.pProgram->removeDefine(control.define);
+			mLightingPass.pLightingFullscreenPass->getProgram()->removeDefine(control.define);
 			if (controlId == ControlID::EnableHashedAlpha) mDepthPass.pProgram->removeDefine(control.define);
 		}
 	}
@@ -107,7 +111,10 @@ void ForwardRenderer::applyAaMode(SampleCallbacks* pSample)
 
 	// Common FBO desc (2 color outputs - color and normal)
 	Fbo::Desc fboDesc;
-	fboDesc.setColorTarget(0, ResourceFormat::RGBA32Float).setColorTarget(1, ResourceFormat::RGBA8Unorm).setDepthStencilTarget(ResourceFormat::D32Float);
+	fboDesc.setColorTarget(0, ResourceFormat::RGBA8Unorm);
+	fboDesc.setColorTarget(1, ResourceFormat::RGBA8Unorm);
+	fboDesc.setColorTarget(2, ResourceFormat::RGBA8Unorm);
+	fboDesc.setDepthStencilTarget(ResourceFormat::D32Float);
 
 	// Release the TAA FBOs
 	mTAA.resetFbos();
@@ -116,7 +123,7 @@ void ForwardRenderer::applyAaMode(SampleCallbacks* pSample)
 	{
 		mGBufferPass.pProgram->removeDefine("INTERPOLATION_MODE");
 		mGBufferPass.pProgram->addDefine("_OUTPUT_MOTION_VECTORS");
-		fboDesc.setColorTarget(2, ResourceFormat::RG16Float);
+		fboDesc.setColorTarget(3, ResourceFormat::RG16Float);
 
 		Fbo::Desc taaFboDesc;
 		taaFboDesc.setColorTarget(0, ResourceFormat::RGBA8UnormSrgb);

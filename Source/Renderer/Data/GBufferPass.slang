@@ -64,10 +64,11 @@ MainVsOut vs(VertexIn vIn)
 
 struct PsOut
 {
-    float4 color : SV_TARGET0;
-    float4 normal : SV_TARGET1;
+    float4 tex0 : SV_TARGET0;
+    float4 tex1 : SV_TARGET1;
+    float4 tex2 : SV_TARGET2;
 #ifdef _OUTPUT_MOTION_VECTORS
-    float2 motion : SV_TARGET2;
+    float2 motion : SV_TARGET3;
 #endif
 };
 
@@ -109,8 +110,9 @@ PsOut ps(MainVsOut vOut, float4 pixelCrd : SV_POSITION)
     // Add light-map
     finalColor.rgb += sd.diffuse * sd.lightMap.rgb;
 
-    psOut.color = finalColor;
-    psOut.normal = float4(vOut.vsData.normalW * 0.5f + 0.5f, 1.0f);
+    psOut.tex0 = finalColor;
+    psOut.tex1 = float4(sd.specular, 1.0f);
+    psOut.tex2 = float4(vOut.vsData.normalW * 0.5f + 0.5f, sd.linearRoughness);
 
 #ifdef _OUTPUT_MOTION_VECTORS
     psOut.motion = calcMotionVector(pixelCrd.xy, vOut.vsData.prevPosH, gRenderTargetDim);
@@ -118,7 +120,7 @@ PsOut ps(MainVsOut vOut, float4 pixelCrd : SV_POSITION)
 
 #if defined(_VISUALIZE_CASCADES) && defined(_ENABLE_SHADOWS)
     float3 cascadeColor = gVisibilityBuffer.Load(int3(vOut.vsData.posH.xy, 0)).gba;
-    psOut.color.rgb *= cascadeColor;
+    psOut.tex0.rgb *= cascadeColor;
 #endif
     return psOut;
 }

@@ -86,6 +86,7 @@ private:
 		GraphicsVars::SharedPtr pVars;
 		FullScreenPass::UniquePtr pLightingFullscreenPass;
 		size_t LightArrayOffset;
+		ParameterBlock::SharedPtr pGBufferBlock;
 	} mLightingPass;
 
 	struct
@@ -230,8 +231,11 @@ private:
 	enum class GBufferDebugMode
 	{
 		None,
-		Color,
+		Diffuse,
+		Specular,
 		Normal,
+		Roughness,
+		Depth,
 	};
 
 	GBufferDebugMode mGBufferDebugMode = GBufferDebugMode::None;

@@ -25,43 +25,101 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
+__import ShaderCommon;
 __import Shading;
 
-
-Texture2D gGBufferTexture0;
-Texture2D gGBufferTexture1;
-
-layout(binding = 0) cbuffer Globals : register(b0)
+cbuffer Globals
 {
-	uint gDebugMode;
-}
+	uint DebugMode;
+};
 
-layout(binding = 1) cbuffer PerFrame : register(b1)
+cbuffer PerFrame
 {
-    CameraData gCamera;
-    LightData gLights[_LIGHT_COUNT];
+	CameraData Camera;
+	LightData Lights[_LIGHT_COUNT];
+};
+
+struct GBufferTextures
+{
+	Texture2D Texture0;
+	Texture2D Texture1;
+	Texture2D Texture2;
+	Texture2D Depth;
+};
+
+ParameterBlock<GBufferTextures> GB;
+
+Texture2D gVisibilityBuffer;
+
+float3 reconstructWorldPosition(int3 loc, float2 texC)
+{
+	// Reconstruct World Position
+	float depth = GB.Depth.Load(loc).r;
+	float2 ndcCoords = texC * 2.0f - 1.0f;
+	ndcCoords.y = -ndcCoords.y;
+	float4 projectedPos = float4(ndcCoords, depth, 1.0f);
+	float4 transformedPos = mul(projectedPos, Camera.invViewProj);
+	return transformedPos.xyz / transformedPos.w;
 }
 
 #ifdef DEBUG_MODE
 float4 debugMode(int3 loc)
 {
-	switch(gDebugMode)
+	switch(DebugMode)
 	{
 	case 1:
-		return gGBufferTexture0.Load(loc);
-		break;
+		return GB.Texture0.Load(loc);
 	case 2:
-		return gGBufferTexture1.Load(loc);
-		break;
+		return GB.Texture1.Load(loc);
+	case 3:
+		return float4(GB.Texture2.Load(loc).xyz, 1.0f);
+	case 4:
+		return float4(GB.Texture2.Load(loc).aaa, 1.0f);
+	case 5:
+		float depth = GB.Depth.Load(loc).r;
+		float f = Camera.farZ;
+		float n = Camera.nearZ;
+		float q = f / (n - f);
+		float z = 1 / ((depth + q) / (q * n));
+		z = (z - n) / (f - n);
+		return float4(z, z, z, 1.0f);
 	default:
 		return float4(0.0f);
 	}
 }
 #endif
 
-float4 applyLighting(int3 loc)
+float4 applyLighting(int3 loc, float2 texC)
 {
-	return gGBufferTexture0.Load(loc);
+	ShadingData sd = initShadingData();
+
+	float4 texture2Data = GB.Texture2.Load(loc);
+
+	sd.posW = reconstructWorldPosition(loc, texC);
+	sd.N = normalize(texture2Data.xyz * 2.0f - 1.0f);
+	sd.V = normalize(Camera.posW - sd.posW);
+	sd.NdotV = dot(sd.N, sd.V);
+	sd.diffuse = GB.Texture0.Load(loc).rgb;
+	sd.linearRoughness = texture2Data.w;
+	sd.specular = GB.Texture1.Load(loc).rgb;
+	sd.roughness = sd.linearRoughness * sd.linearRoughness;
+
+	float4 finalColor = float4(0, 0, 0, 1);
+
+	[unroll]
+	for (uint l = 0; l < _LIGHT_COUNT; l++)
+	{
+		float shadowFactor = 1;
+#ifdef _ENABLE_SHADOWS
+		if (l == 0)
+		{
+			shadowFactor = gVisibilityBuffer.Load(loc).r;
+		}
+#endif
+		finalColor.rgb += evalMaterial(sd, Lights[l], shadowFactor).color.rgb;
+	}
+
+	return finalColor;
 }
 
 float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET0
@@ -71,7 +129,7 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET0
 #ifdef DEBUG_MODE
 	color = debugMode(position);
 #else
-	color = applyLighting(position);
+	color = applyLighting(position, texC);
 #endif
 	return color;
 }

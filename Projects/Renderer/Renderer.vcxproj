@@ -82,7 +82,7 @@
     <ClInclude Include="..\..\Source\Renderer\ForwardRendererSceneRenderer.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\Source\Renderer\Data\ApplyAO.ps.slang" />
+    <None Include="..\..\Source\Renderer\Data\ApplyAO.slang" />
     <None Include="..\..\Source\Renderer\Data\DepthPass.ps.slang" />
     <None Include="..\..\Source\Renderer\Data\GBufferPass.slang" />
     <None Include="..\..\Source\Renderer\Data\LightingPass.ps.slang" />

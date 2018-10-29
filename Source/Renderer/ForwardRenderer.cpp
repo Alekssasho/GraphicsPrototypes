@@ -75,8 +75,10 @@ void ForwardRenderer::initLightingPass()
 
 	mLightingPass.pLightingFullscreenPass = FullScreenPass::create("LightingPass.ps.slang", defines);
 	mLightingPass.pVars = GraphicsVars::create(mLightingPass.pLightingFullscreenPass->getProgram()->getReflector());
+	mLightingPass.pGBufferBlock = ParameterBlock::create(mLightingPass.pLightingFullscreenPass->getProgram()->getReflector()->getParameterBlock("GB"), false);
+	mLightingPass.pVars->setParameterBlock("GB", mLightingPass.pGBufferBlock);
 
-	mLightingPass.LightArrayOffset = mLightingPass.pVars["PerFrame"]->getVariableOffset("gLights[0]");
+	mLightingPass.LightArrayOffset = mLightingPass.pVars["PerFrame"]->getVariableOffset("Lights[0]");
 }
 
 void ForwardRenderer::initGBufferPass()
@@ -110,7 +112,7 @@ void ForwardRenderer::initShadowPass(uint32_t windowWidth, uint32_t windowHeight
 void ForwardRenderer::initSSAO()
 {
 	mSSAO.pSSAO = SSAO::create(uvec2(1024));
-	mSSAO.pApplySSAOPass = FullScreenPass::create("ApplyAO.ps.slang");
+	mSSAO.pApplySSAOPass = FullScreenPass::create("ApplyAO.slang");
 	mSSAO.pVars = GraphicsVars::create(mSSAO.pApplySSAOPass->getProgram()->getReflector());
 
 	Sampler::Desc desc;
@@ -182,8 +184,8 @@ void ForwardRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pScen
 	setSceneSampler(mpSceneSampler ? mpSceneSampler->getMaxAnisotropy() : 4);
 	setActiveCameraAspectRatio(pSample->getCurrentFbo()->getWidth(), pSample->getCurrentFbo()->getHeight());
 	initDepthPass();
-	initGBufferPass();
 	initLightingPass();
+	initGBufferPass();
 	auto pTargetFbo = pSample->getCurrentFbo();
 	initShadowPass(pTargetFbo->getWidth(), pTargetFbo->getHeight());
 	initSSAO();
@@ -193,6 +195,7 @@ void ForwardRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pScen
 	applyLightingProgramControl(ControlID::EnableReflections);
     
 	pSample->setCurrentTime(0);
+	mpSceneRenderer->getScene()->getActiveCamera()->setDepthRange(0.1f, 100.0f);
 }
 
 void ForwardRenderer::resetScene()
@@ -312,7 +315,7 @@ void ForwardRenderer::beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint6
 	if (mAAMode == AAMode::TAA)
 	{
 		glm::vec2 targetResolution = glm::vec2(pTargetFbo->getWidth(), pTargetFbo->getHeight());
-		pContext->clearRtv(mpGBufferFbo->getColorTexture(2)->getRTV().get(), vec4(0));
+		pContext->clearRtv(mpGBufferFbo->getColorTexture(3)->getRTV().get(), vec4(0));
 	}
 }
 
@@ -351,11 +354,18 @@ void ForwardRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 	MarkerScope scope(pContext, "Ligthing pass");
 	PROFILE(lightingPass);
 
-	mLightingPass.pVars->setTexture("gGBufferTexture0", mpGBufferFbo->getColorTexture(0));
-	mLightingPass.pVars->setTexture("gGBufferTexture1", mpGBufferFbo->getColorTexture(1));
+	mLightingPass.pGBufferBlock->setTexture("Texture0", mpGBufferFbo->getColorTexture(0));
+	mLightingPass.pGBufferBlock->setTexture("Texture1", mpGBufferFbo->getColorTexture(1));
+	mLightingPass.pGBufferBlock->setTexture("Texture2", mpGBufferFbo->getColorTexture(2));
+	mLightingPass.pGBufferBlock->setTexture("Depth", mpGBufferFbo->getDepthStencilTexture());
+
 	if (mGBufferDebugMode != GBufferDebugMode::None)
 	{
-		mLightingPass.pVars["Globals"]["gDebugMode"] = (uint32_t)mGBufferDebugMode;
+		mLightingPass.pVars["Globals"]["DebugMode"] = (uint32_t)mGBufferDebugMode;
+	}
+	if (mControls[ControlID::EnableShadows].enabled)
+	{
+		mLightingPass.pVars->setTexture("gVisibilityBuffer", mShadowPass.pVisibilityBuffer);
 	}
 
 	// Set ligth information
@@ -369,7 +379,7 @@ void ForwardRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 	}
 
 	// Set camera information
-	mpSceneRenderer->getScene()->getActiveCamera()->setIntoConstantBuffer(perFrameCB, "gCamera");
+	mpSceneRenderer->getScene()->getActiveCamera()->setIntoConstantBuffer(perFrameCB, "Camera");
 
 	pContext->setGraphicsVars(mLightingPass.pVars);
 
@@ -378,7 +388,7 @@ void ForwardRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 
 void ForwardRenderer::gBufferPass(RenderContext* pContext, Fbo* pTargetFbo)
 {
-	MarkerScope scope(pContext, "G-BUffer pass");
+	MarkerScope scope(pContext, "G-Buffer pass");
 	PROFILE(gBufferPass);
 	mpState->setProgram(mGBufferPass.pProgram);
 	mpState->setDepthStencilState(mEnableDepthPass ? mGBufferPass.pDsState : nullptr);
@@ -449,7 +459,7 @@ void ForwardRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 		PROFILE(runTAA);
 		//  Get the Current Color and Motion Vectors
 		const Texture::SharedPtr pCurColor = pColorFbo->getColorTexture(0);
-		const Texture::SharedPtr pMotionVec = mpGBufferFbo->getColorTexture(2);
+		const Texture::SharedPtr pMotionVec = mpGBufferFbo->getColorTexture(3);
 
 		//  Get the Previous Color
 		const Texture::SharedPtr pPrevColor = mTAA.getInactiveFbo()->getColorTexture(0);
@@ -474,7 +484,7 @@ void ForwardRenderer::ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr p
 	{
 		MarkerScope scope(pContext, "SSAO");
 		Texture::SharedPtr pDepth = mpGBufferFbo->getDepthStencilTexture();
-		Texture::SharedPtr pAOMap = mSSAO.pSSAO->generateAOMap(pContext, mpSceneRenderer->getScene()->getActiveCamera().get(), pDepth, mpGBufferFbo->getColorTexture(1));
+		Texture::SharedPtr pAOMap = mSSAO.pSSAO->generateAOMap(pContext, mpSceneRenderer->getScene()->getActiveCamera().get(), pDepth, mpGBufferFbo->getColorTexture(2));
 		mSSAO.pVars->setTexture("gColor", mpPostProcessFbo->getColorTexture(0));
 		mSSAO.pVars->setTexture("gAOMap", pAOMap);
 
