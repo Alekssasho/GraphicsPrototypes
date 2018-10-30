@@ -53,6 +53,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -65,6 +66,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -73,13 +75,13 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Source\Renderer\ForwardRenderer.cpp" />
-    <ClCompile Include="..\..\Source\Renderer\ForwardRendererControls.cpp" />
-    <ClCompile Include="..\..\Source\Renderer\ForwardRendererSceneRenderer.cpp" />
+    <ClCompile Include="..\..\Source\Renderer\DeferredRenderer.cpp" />
+    <ClCompile Include="..\..\Source\Renderer\DeferredRendererControls.cpp" />
+    <ClCompile Include="..\..\Source\Renderer\DeferredRendererSceneRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\Renderer\ForwardRenderer.h" />
-    <ClInclude Include="..\..\Source\Renderer\ForwardRendererSceneRenderer.h" />
+    <ClInclude Include="..\..\Source\Renderer\DeferredRenderer.h" />
+    <ClInclude Include="..\..\Source\Renderer\DeferredRendererSceneRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Source\Renderer\Data\ApplyAO.slang" />

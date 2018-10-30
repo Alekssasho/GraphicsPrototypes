@@ -18,21 +18,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Source\Renderer\ForwardRenderer.cpp">
+    <ClCompile Include="..\..\Source\Renderer\DeferredRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Renderer\ForwardRendererControls.cpp">
+    <ClCompile Include="..\..\Source\Renderer\DeferredRendererControls.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Renderer\ForwardRendererSceneRenderer.cpp">
+    <ClCompile Include="..\..\Source\Renderer\DeferredRendererSceneRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\Renderer\ForwardRenderer.h">
+    <ClInclude Include="..\..\Source\Renderer\DeferredRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Renderer\ForwardRendererSceneRenderer.h">
+    <ClInclude Include="..\..\Source\Renderer\DeferredRendererSceneRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

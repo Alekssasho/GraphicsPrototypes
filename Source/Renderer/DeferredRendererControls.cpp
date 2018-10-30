@@ -25,7 +25,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
-#include "ForwardRenderer.h"
+#include "DeferredRenderer.h"
 
 const Gui::DropdownList aaModeList =
 {
@@ -44,7 +44,7 @@ const Gui::DropdownList gBufferDebugModeList =
 	{ 5, "Depth" },
 };
 
-void ForwardRenderer::initControls()
+void DeferredRenderer::initControls()
 {
 	mControls.resize(ControlID::Count);
 	mControls[ControlID::SuperSampling] = { false, false, "INTERPOLATION_MODE", "sample" };
@@ -62,7 +62,7 @@ void ForwardRenderer::initControls()
 	}
 }
 
-void ForwardRenderer::applyLightingProgramControl(ControlID controlId)
+void DeferredRenderer::applyLightingProgramControl(ControlID controlId)
 {
 	const ProgramControl control = mControls[controlId];
 	if (control.define.size())
@@ -83,7 +83,7 @@ void ForwardRenderer::applyLightingProgramControl(ControlID controlId)
 	}
 }
 
-void ForwardRenderer::createTaaPatternGenerator(uint32_t fboWidth, uint32_t fboHeight)
+void DeferredRenderer::createTaaPatternGenerator(uint32_t fboWidth, uint32_t fboHeight)
 {
 	PatternGenerator::SharedPtr pGenerator;
 	switch (mTAASamplePattern)
@@ -102,7 +102,7 @@ void ForwardRenderer::createTaaPatternGenerator(uint32_t fboWidth, uint32_t fboH
 	mpSceneRenderer->getScene()->getActiveCamera()->setPatternGenerator(pGenerator, 1.0f / vec2(fboWidth, fboHeight));
 }
 
-void ForwardRenderer::applyAaMode(SampleCallbacks* pSample)
+void DeferredRenderer::applyAaMode(SampleCallbacks* pSample)
 {
 	if (mGBufferPass.pProgram == nullptr) return;
 
@@ -135,6 +135,8 @@ void ForwardRenderer::applyAaMode(SampleCallbacks* pSample)
 		mGBufferPass.pProgram->removeDefine("_OUTPUT_MOTION_VECTORS");
 		applyLightingProgramControl(SuperSampling);
 		fboDesc.setSampleCount(1);
+		// Disable jitter
+		mpSceneRenderer->getScene()->getActiveCamera()->setPatternGenerator(nullptr);
 	}
 
 	mpGBufferFbo = FboHelper::create2D(w, h, fboDesc);
@@ -145,10 +147,11 @@ void ForwardRenderer::applyAaMode(SampleCallbacks* pSample)
 		Fbo::Desc mainDesc;
 		mainDesc.setColorTarget(0, ResourceFormat::RGBA32Float);
 		mpMainFbo = FboHelper::create2D(w, h, mainDesc);
+		mpMainFbo->attachDepthStencilTarget(mpGBufferFbo->getDepthStencilTexture());
 	}
 }
 
-void ForwardRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
+void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 {
 	static const char* kImageFileString = "Image files\0*.jpg;*.bmp;*.dds;*.png;*.tiff;*.tif;*.tga;*.hdr;*.exr\0\0";
 	if (pGui->addButton("Load Model"))

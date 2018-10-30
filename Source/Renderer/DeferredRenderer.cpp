@@ -25,7 +25,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
-#include "ForwardRenderer.h"
+#include "DeferredRenderer.h"
 
 #include "pix3.h"
 
@@ -60,15 +60,15 @@ struct MarkerScope
 	RenderContext* m_Context;
 };
 
-const std::string ForwardRenderer::skDefaultScene = "Arcade/Arcade.fscene";
+const std::string DeferredRenderer::skDefaultScene = "Arcade/Arcade.fscene";
 
-void ForwardRenderer::initDepthPass()
+void DeferredRenderer::initDepthPass()
 {
 	mDepthPass.pProgram = GraphicsProgram::createFromFile("DepthPass.ps.slang", "", "main");
 	mDepthPass.pVars = GraphicsVars::create(mDepthPass.pProgram->getReflector());
 }
 
-void ForwardRenderer::initLightingPass()
+void DeferredRenderer::initLightingPass()
 {
 	Program::DefineList defines;
 	defines.add("_LIGHT_COUNT", std::to_string(mpSceneRenderer->getScene()->getLightCount()));
@@ -81,7 +81,7 @@ void ForwardRenderer::initLightingPass()
 	mLightingPass.LightArrayOffset = mLightingPass.pVars["PerFrame"]->getVariableOffset("Lights[0]");
 }
 
-void ForwardRenderer::initGBufferPass()
+void DeferredRenderer::initGBufferPass()
 {
 	mGBufferPass.pProgram = GraphicsProgram::createFromFile("GBufferPass.slang", "vs", "ps");
 	initControls();
@@ -100,7 +100,7 @@ void ForwardRenderer::initGBufferPass()
 	mGBufferPass.pAlphaBlendBS = BlendState::create(bsDesc);
 }
 
-void ForwardRenderer::initShadowPass(uint32_t windowWidth, uint32_t windowHeight)
+void DeferredRenderer::initShadowPass(uint32_t windowWidth, uint32_t windowHeight)
 {
 	mShadowPass.pCsm = CascadedShadowMaps::create(mpSceneRenderer->getScene()->getLight(0), 2048, 2048, windowWidth, windowHeight, mpSceneRenderer->getScene()->shared_from_this());
 	mShadowPass.pCsm->setFilterMode(CsmFilterHwPcf);
@@ -109,7 +109,7 @@ void ForwardRenderer::initShadowPass(uint32_t windowWidth, uint32_t windowHeight
 	//mShadowPass.pCsm->setEvsmBlur(7, 3);
 }
 
-void ForwardRenderer::initSSAO()
+void DeferredRenderer::initSSAO()
 {
 	mSSAO.pSSAO = SSAO::create(uvec2(1024));
 	mSSAO.pApplySSAOPass = FullScreenPass::create("ApplyAO.slang");
@@ -120,7 +120,7 @@ void ForwardRenderer::initSSAO()
 	mSSAO.pVars->setSampler("gSampler", Sampler::create(desc));
 }
 
-void ForwardRenderer::setSceneSampler(uint32_t maxAniso)
+void DeferredRenderer::setSceneSampler(uint32_t maxAniso)
 {
 	Scene* pScene = const_cast<Scene*>(mpSceneRenderer->getScene().get());
 	Sampler::Desc samplerDesc;
@@ -129,7 +129,7 @@ void ForwardRenderer::setSceneSampler(uint32_t maxAniso)
 	pScene->bindSampler(mpSceneSampler);
 }
 
-void ForwardRenderer::applyCustomSceneVars(const Scene* pScene, const std::string& filename)
+void DeferredRenderer::applyCustomSceneVars(const Scene* pScene, const std::string& filename)
 {
 	std::string folder = getDirectoryFromFile(filename);
 
@@ -140,7 +140,7 @@ void ForwardRenderer::applyCustomSceneVars(const Scene* pScene, const std::strin
 	if (var.type == Scene::UserVariable::Type::Double) mOpacityScale = (float)var.d64;
 }
 
-void ForwardRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pScene)
+void DeferredRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pScene)
 {
 	if (pScene->getCameraCount() == 0)
 	{
@@ -178,7 +178,7 @@ void ForwardRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pScen
 		pProbe->setSampler(mpSceneSampler);
 	}
 
-	mpSceneRenderer = ForwardRendererSceneRenderer::create(pScene);
+	mpSceneRenderer = DeferredRendererSceneRenderer::create(pScene);
 	mpSceneRenderer->setCameraControllerType(SceneRenderer::CameraControllerType::FirstPerson);
 	mpSceneRenderer->toggleStaticMaterialCompilation(mPerMaterialShader);
 	setSceneSampler(mpSceneSampler ? mpSceneSampler->getMaxAnisotropy() : 4);
@@ -198,13 +198,13 @@ void ForwardRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pScen
 	mpSceneRenderer->getScene()->getActiveCamera()->setDepthRange(0.1f, 100.0f);
 }
 
-void ForwardRenderer::resetScene()
+void DeferredRenderer::resetScene()
 {
 	mpSceneRenderer = nullptr;
 	mSkyBox.pEffect = nullptr;
 }
 
-void ForwardRenderer::loadModel(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar)
+void DeferredRenderer::loadModel(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar)
 {
 	Mesh::resetGlobalIdCounter();
 	resetScene();
@@ -223,7 +223,7 @@ void ForwardRenderer::loadModel(SampleCallbacks* pSample, const std::string& fil
 	initScene(pSample, pScene);
 }
 
-void ForwardRenderer::loadScene(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar)
+void DeferredRenderer::loadScene(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar)
 {
 	Mesh::resetGlobalIdCounter();
 	resetScene();
@@ -244,7 +244,7 @@ void ForwardRenderer::loadScene(SampleCallbacks* pSample, const std::string& fil
 	}
 }
 
-void ForwardRenderer::initSkyBox(const std::string& name)
+void DeferredRenderer::initSkyBox(const std::string& name)
 {
 	Sampler::Desc samplerDesc;
 	samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
@@ -255,7 +255,7 @@ void ForwardRenderer::initSkyBox(const std::string& name)
 	mSkyBox.pDS = DepthStencilState::create(dsDesc);
 }
 
-void ForwardRenderer::updateLightProbe(const LightProbe::SharedPtr& pLight)
+void DeferredRenderer::updateLightProbe(const LightProbe::SharedPtr& pLight)
 {
 	Scene::SharedPtr pScene = mpSceneRenderer->getScene();
 
@@ -274,26 +274,26 @@ void ForwardRenderer::updateLightProbe(const LightProbe::SharedPtr& pLight)
 	applyLightingProgramControl(ControlID::EnableReflections);
 }
 
-void ForwardRenderer::initAA(SampleCallbacks* pSample)
+void DeferredRenderer::initAA(SampleCallbacks* pSample)
 {
 	mTAA.pTAA = TemporalAA::create();
 	mpFXAA = FXAA::create();
 	applyAaMode(pSample);
 }
 
-void ForwardRenderer::initPostProcess()
+void DeferredRenderer::initPostProcess()
 {
 	mpToneMapper = ToneMapping::create(ToneMapping::Operator::Aces);
 }
 
-void ForwardRenderer::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)
+void DeferredRenderer::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)
 {
 	mpState = GraphicsState::create();
 	initPostProcess();
 	loadScene(pSample, skDefaultScene, true);
 }
 
-void ForwardRenderer::renderSkyBox(RenderContext* pContext)
+void DeferredRenderer::renderSkyBox(RenderContext* pContext)
 {
 	if (mSkyBox.pEffect)
 	{
@@ -305,7 +305,7 @@ void ForwardRenderer::renderSkyBox(RenderContext* pContext)
 	}
 }
 
-void ForwardRenderer::beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint64_t frameId)
+void DeferredRenderer::beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint64_t frameId)
 {
 	pContext->pushGraphicsState(mpState);
 	pContext->clearFbo(mpMainFbo.get(), glm::vec4(0.7f, 0.7f, 0.7f, 1.0f), 1, 0, FboAttachmentType::All);
@@ -319,19 +319,19 @@ void ForwardRenderer::beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint6
 	}
 }
 
-void ForwardRenderer::endFrame(RenderContext* pContext)
+void DeferredRenderer::endFrame(RenderContext* pContext)
 {
 	pContext->popGraphicsState();
 }
 
-void ForwardRenderer::postProcess(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
+void DeferredRenderer::postProcess(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
 {
 	PROFILE(postProcess);    
 	MarkerScope scope(pContext, "Post Process");
 	mpToneMapper->execute(pContext, mpMainFbo->getColorTexture(0), pTargetFbo);
 }
 
-void ForwardRenderer::depthPass(RenderContext* pContext)
+void DeferredRenderer::depthPass(RenderContext* pContext)
 {
 	MarkerScope scope(pContext, "Depth Pass");
 	PROFILE(depthPass);
@@ -344,12 +344,12 @@ void ForwardRenderer::depthPass(RenderContext* pContext)
 	mpState->setProgram(mDepthPass.pProgram);
 	pContext->setGraphicsVars(mDepthPass.pVars);
     
-	auto renderMode = mControls[EnableTransparency].enabled ? ForwardRendererSceneRenderer::Mode::Opaque : ForwardRendererSceneRenderer::Mode::All;
+	auto renderMode = mControls[EnableTransparency].enabled ? DeferredRendererSceneRenderer::Mode::Opaque : DeferredRendererSceneRenderer::Mode::All;
 	mpSceneRenderer->setRenderMode(renderMode);
 	mpSceneRenderer->renderScene(pContext);
 }
 
-void ForwardRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
+void DeferredRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 {
 	MarkerScope scope(pContext, "Ligthing pass");
 	PROFILE(lightingPass);
@@ -386,7 +386,7 @@ void ForwardRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 	mLightingPass.pLightingFullscreenPass->execute(pContext);
 }
 
-void ForwardRenderer::gBufferPass(RenderContext* pContext, Fbo* pTargetFbo)
+void DeferredRenderer::gBufferPass(RenderContext* pContext, Fbo* pTargetFbo)
 {
 	MarkerScope scope(pContext, "G-Buffer pass");
 	PROFILE(gBufferPass);
@@ -415,22 +415,22 @@ void ForwardRenderer::gBufferPass(RenderContext* pContext, Fbo* pTargetFbo)
 	}
 	else
 	{
-		mpSceneRenderer->setRenderMode(ForwardRendererSceneRenderer::Mode::All);
+		mpSceneRenderer->setRenderMode(DeferredRendererSceneRenderer::Mode::All);
 		mpSceneRenderer->renderScene(pContext);
 	}
 	pContext->flush();
 	mpState->setDepthStencilState(nullptr);
 }
 
-void ForwardRenderer::renderOpaqueObjects(RenderContext* pContext)
+void DeferredRenderer::renderOpaqueObjects(RenderContext* pContext)
 {
-	mpSceneRenderer->setRenderMode(ForwardRendererSceneRenderer::Mode::Opaque);
+	mpSceneRenderer->setRenderMode(DeferredRendererSceneRenderer::Mode::Opaque);
 	mpSceneRenderer->renderScene(pContext);
 }
 
-void ForwardRenderer::renderTransparentObjects(RenderContext* pContext)
+void DeferredRenderer::renderTransparentObjects(RenderContext* pContext)
 {
-	mpSceneRenderer->setRenderMode(ForwardRendererSceneRenderer::Mode::Transparent);
+	mpSceneRenderer->setRenderMode(DeferredRendererSceneRenderer::Mode::Transparent);
 	mpState->setBlendState(mGBufferPass.pAlphaBlendBS);
 	mpState->setRasterizerState(mGBufferPass.pNoCullRS);
 	mpSceneRenderer->renderScene(pContext);
@@ -438,7 +438,7 @@ void ForwardRenderer::renderTransparentObjects(RenderContext* pContext)
 	mpState->setRasterizerState(nullptr);
 }
 
-void ForwardRenderer::shadowPass(RenderContext* pContext)
+void DeferredRenderer::shadowPass(RenderContext* pContext)
 {
 	MarkerScope scope(pContext, "Shadow Map Pass");
 	PROFILE(shadowPass);
@@ -451,7 +451,7 @@ void ForwardRenderer::shadowPass(RenderContext* pContext)
 	}
 }
 
-void ForwardRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
+void DeferredRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 {
 	if(mAAMode == AAMode::TAA)
 	{
@@ -477,7 +477,7 @@ void ForwardRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 	}
 }
 
-void ForwardRenderer::ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
+void DeferredRenderer::ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
 {
 	PROFILE(ssao);
 	if (mControls[EnableSSAO].enabled)
@@ -495,7 +495,7 @@ void ForwardRenderer::ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr p
 	}
 }
 
-void ForwardRenderer::executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
+void DeferredRenderer::executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
 {
 	PROFILE(fxaa);
 	if(mAAMode == AAMode::FXAA)
@@ -506,7 +506,7 @@ void ForwardRenderer::executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTarge
 	}
 }
 
-void ForwardRenderer::onBeginTestFrame(SampleTest* pSampleTest)
+void DeferredRenderer::onBeginTestFrame(SampleTest* pSampleTest)
 {
 	//  Already existing. Is this a problem?
 	auto nextTriggerType = pSampleTest->getNextTriggerType();
@@ -517,8 +517,13 @@ void ForwardRenderer::onBeginTestFrame(SampleTest* pSampleTest)
 	}
 }
 
-void ForwardRenderer::onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo)
+void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
+	if (mCaptureNextFrame)
+	{
+		StartRenderDocCapture(pSample, pRenderContext);
+	}
+
 	if (mpSceneRenderer)
 	{
 		Program::reloadAllPrograms();
@@ -533,11 +538,11 @@ void ForwardRenderer::onFrameRender(SampleCallbacks* pSample, const RenderContex
 		depthPass(pRenderContext.get());
 		shadowPass(pRenderContext.get());
 		mpState->setFbo(mpGBufferFbo);
-		renderSkyBox(pRenderContext.get());
 		gBufferPass(pRenderContext.get(), pTargetFbo.get());
 
 		mpState->setFbo(mpMainFbo);
 		lightingPass(pRenderContext.get(), pTargetFbo.get());
+		renderSkyBox(pRenderContext.get());
 
 		if (mGBufferDebugMode != GBufferDebugMode::None)
 		{
@@ -560,9 +565,15 @@ void ForwardRenderer::onFrameRender(SampleCallbacks* pSample, const RenderContex
 		pRenderContext->clearFbo(pTargetFbo.get(), vec4(0.2f, 0.4f, 0.5f, 1), 1, 0);
 	}
 
+	if (mCaptureNextFrame)
+	{
+		mCaptureNextFrame = false;
+		EndRenderDocCapture(pSample, pRenderContext);
+	}
+
 }
 
-void ForwardRenderer::applyCameraPathState()
+void DeferredRenderer::applyCameraPathState()
 {
 	const Scene* pScene = mpSceneRenderer->getScene().get();
 	if(pScene->getPathCount())
@@ -579,7 +590,7 @@ void ForwardRenderer::applyCameraPathState()
 	}
 }
 
-bool ForwardRenderer::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
+bool DeferredRenderer::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
 {
 	if (mpSceneRenderer && keyEvent.type == KeyboardEvent::Type::KeyPressed)
 	{
@@ -593,13 +604,16 @@ bool ForwardRenderer::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& 
 			mPerMaterialShader = !mPerMaterialShader;
 			mpSceneRenderer->toggleStaticMaterialCompilation(mPerMaterialShader);
 			return true;
+		case KeyboardEvent::Key::R:
+			mCaptureNextFrame = true && mpRenderDocAPI; // Set it to true only if we have loaded RenderDoc
+			return true;
 		}
 	}
 
 	return mpSceneRenderer ? mpSceneRenderer->onKeyEvent(keyEvent) : false;
 }
 
-void ForwardRenderer::onDroppedFile(SampleCallbacks* pSample, const std::string& filename)
+void DeferredRenderer::onDroppedFile(SampleCallbacks* pSample, const std::string& filename)
 {
 	if (hasSuffix(filename, ".fscene", false) == false)
 	{
@@ -609,12 +623,12 @@ void ForwardRenderer::onDroppedFile(SampleCallbacks* pSample, const std::string&
 	loadScene(pSample, filename, true);
 }
 
-bool ForwardRenderer::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)
+bool DeferredRenderer::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)
 {
 	return mpSceneRenderer ? mpSceneRenderer->onMouseEvent(mouseEvent) : true;
 }
 
-void ForwardRenderer::onResizeSwapChain(SampleCallbacks* pSample, uint32_t width, uint32_t height)
+void DeferredRenderer::onResizeSwapChain(SampleCallbacks* pSample, uint32_t width, uint32_t height)
 {
 	// Create the post-process FBO and AA resolve Fbo
 	Fbo::Desc fboDesc;
@@ -630,7 +644,7 @@ void ForwardRenderer::onResizeSwapChain(SampleCallbacks* pSample, uint32_t width
 	}
 }
 
-void ForwardRenderer::applyCsSkinningMode()
+void DeferredRenderer::applyCsSkinningMode()
 {
 	if(mpSceneRenderer)
 	{
@@ -639,12 +653,12 @@ void ForwardRenderer::applyCsSkinningMode()
 	}    
 }
 
-void ForwardRenderer::setActiveCameraAspectRatio(uint32_t w, uint32_t h)
+void DeferredRenderer::setActiveCameraAspectRatio(uint32_t w, uint32_t h)
 {
 	mpSceneRenderer->getScene()->getActiveCamera()->setAspectRatio((float)w / (float)h);
 }
 
-	void ForwardRenderer::onInitializeTesting(SampleCallbacks* pSample)
+	void DeferredRenderer::onInitializeTesting(SampleCallbacks* pSample)
 	{
 		auto args = pSample->getArgList();
 		std::vector<ArgList::Arg> model = args.getValues("loadmodel");
@@ -672,6 +686,61 @@ void ForwardRenderer::setActiveCameraAspectRatio(uint32_t w, uint32_t h)
 		}
 	}
 
+void DeferredRenderer::StartRenderDocCapture(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+{
+	pRenderContext->flush(true);
+	mpRenderDocAPI->StartFrameCapture((ID3D12Device*)gpDevice->getApiHandle(), (HWND)pSample->getWindow()->getApiHandle());
+}
+
+void DeferredRenderer::EndRenderDocCapture(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+{
+	pRenderContext->flush(true);
+	mpRenderDocAPI->EndFrameCapture((ID3D12Device*)gpDevice->getApiHandle(), (HWND)pSample->getWindow()->getApiHandle());
+
+	if (!mpRenderDocAPI->IsTargetControlConnected())
+	{
+		auto numCaptures = mpRenderDocAPI->GetNumCaptures();
+
+		uint32_t captureFileLength = 0;
+		mpRenderDocAPI->GetCapture(numCaptures - 1, nullptr, &captureFileLength, nullptr);
+
+		std::string captureFileName;
+		captureFileName.resize(captureFileLength);
+		mpRenderDocAPI->GetCapture(numCaptures - 1, &captureFileName[0], &captureFileLength, nullptr);
+
+		captureFileName.insert(captureFileName.begin(), '\"');
+		captureFileName.back() = '\"'; // Change terminating null
+
+		mpRenderDocAPI->LaunchReplayUI(true, captureFileName.c_str());
+	}
+}
+
+void DeferredRenderer::LoadRenderDoc()
+{
+	const char* renderDocDllPath = "C:\\Program Files\\RenderDoc\\renderdoc.dll";
+
+	auto module = ::LoadLibraryA(renderDocDllPath);
+	if (!module)
+	{
+		return;
+	}
+	pRENDERDOC_GetAPI RENDERDOC_GetAPIfunc = (pRENDERDOC_GetAPI)::GetProcAddress(module, "RENDERDOC_GetAPI");
+	auto ret = RENDERDOC_GetAPIfunc(eRENDERDOC_API_Version_1_1_2, (void**)&mpRenderDocAPI);
+	assert(ret == 1);
+	mpRenderDocAPI->SetFocusToggleKeys(nullptr, 0);
+	mpRenderDocAPI->SetCaptureKeys(nullptr, 0);
+	mpRenderDocAPI->MaskOverlayBits(eRENDERDOC_Overlay_None, eRENDERDOC_Overlay_None);
+	mpRenderDocAPI->UnloadCrashHandler();
+}
+
+DeferredRenderer::DeferredRenderer(bool loadRenderDoc)
+{
+	if (loadRenderDoc)
+	{
+		LoadRenderDoc();
+	}
+}
+
 #ifdef _WIN32
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 #else
@@ -681,7 +750,10 @@ int main(int argc, char** argv)
 	Falcor::addDataDirectory("../../External/Falcor/Media");
 	Falcor::addDataDirectory("../../Source/Renderer/Data");
 
-	ForwardRenderer::UniquePtr pRenderer = std::make_unique<ForwardRenderer>();
+	Falcor::ArgList args;
+	args.parseCommandLine(GetCommandLineA());
+	DeferredRenderer::UniquePtr pRenderer = std::make_unique<DeferredRenderer>(args.argExists("renderdoc"));
+
 	SampleConfig config;
 	config.windowDesc.title = "Falcor Forward Renderer";
 	config.windowDesc.resizableWindow = false;

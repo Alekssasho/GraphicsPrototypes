@@ -28,13 +28,17 @@
 #pragma once
 #include "Falcor.h"
 #include "SampleTest.h"
-#include "ForwardRendererSceneRenderer.h"
+#include "DeferredRendererSceneRenderer.h"
+
+#include <RenderDoc/renderdoc_app.h>
 
 using namespace Falcor;
 
-class ForwardRenderer : public Renderer
+class DeferredRenderer : public Renderer
 {
 public:
+	DeferredRenderer(bool loadRenderDoc);
+
 	void onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext) override;
 	void onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
 	void onResizeSwapChain(SampleCallbacks* pSample, uint32_t width, uint32_t height) override;
@@ -165,7 +169,7 @@ private:
 	void initControls();
 
 	GraphicsState::SharedPtr mpState;
-	ForwardRendererSceneRenderer::SharedPtr mpSceneRenderer;
+	DeferredRendererSceneRenderer::SharedPtr mpSceneRenderer;
 	void loadModel(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar);
 	void loadScene(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar);
 	void initScene(SampleCallbacks* pSample, Scene::SharedPtr pScene);
@@ -239,4 +243,12 @@ private:
 	};
 
 	GBufferDebugMode mGBufferDebugMode = GBufferDebugMode::None;
+
+	// RenderDoc integration
+	void LoadRenderDoc();
+	void StartRenderDocCapture(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext);
+	void EndRenderDocCapture(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext);
+
+	RENDERDOC_API_1_1_2* mpRenderDocAPI = nullptr;
+	bool mCaptureNextFrame = false;
 };

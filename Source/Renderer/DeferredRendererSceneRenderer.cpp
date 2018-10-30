@@ -25,14 +25,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
-#include "ForwardRendererSceneRenderer.h"
+#include "DeferredRendererSceneRenderer.h"
 
 static bool isMaterialTransparent(const Material* pMaterial)
 {
 	return pMaterial->getBaseColor().a < 1.0f;
 }
 
-ForwardRendererSceneRenderer::ForwardRendererSceneRenderer(const Scene::SharedPtr& pScene) : SceneRenderer(pScene)
+DeferredRendererSceneRenderer::DeferredRendererSceneRenderer(const Scene::SharedPtr& pScene) : SceneRenderer(pScene)
 {
 	for (uint32_t model = 0; model < mpScene->getModelCount(); model++)
 	{
@@ -55,12 +55,12 @@ ForwardRendererSceneRenderer::ForwardRendererSceneRenderer(const Scene::SharedPt
 	mpNoCullRS = RasterizerState::create(rsDesc);
 }
 
-ForwardRendererSceneRenderer::SharedPtr ForwardRendererSceneRenderer::create(const Scene::SharedPtr& pScene)
+DeferredRendererSceneRenderer::SharedPtr DeferredRendererSceneRenderer::create(const Scene::SharedPtr& pScene)
 {
-	return SharedPtr(new ForwardRendererSceneRenderer(pScene));
+	return SharedPtr(new DeferredRendererSceneRenderer(pScene));
 }
 
-bool ForwardRendererSceneRenderer::setPerMeshData(const CurrentWorkingData& currentData, const Mesh* pMesh)
+bool DeferredRendererSceneRenderer::setPerMeshData(const CurrentWorkingData& currentData, const Mesh* pMesh)
 {
 	switch (mRenderMode)
 	{
@@ -76,7 +76,7 @@ bool ForwardRendererSceneRenderer::setPerMeshData(const CurrentWorkingData& curr
 	}
 }
 
-void ForwardRendererSceneRenderer::renderScene(RenderContext* pContext)
+void DeferredRendererSceneRenderer::renderScene(RenderContext* pContext)
 {
 	switch (mRenderMode)
 	{
@@ -89,7 +89,7 @@ void ForwardRendererSceneRenderer::renderScene(RenderContext* pContext)
 	SceneRenderer::renderScene(pContext);
 }
 
-RasterizerState::SharedPtr ForwardRendererSceneRenderer::getRasterizerState(const Material* pMaterial)
+RasterizerState::SharedPtr DeferredRendererSceneRenderer::getRasterizerState(const Material* pMaterial)
 {
 	if (pMaterial->getAlphaMode() == AlphaModeMask)
 	{
@@ -101,7 +101,7 @@ RasterizerState::SharedPtr ForwardRendererSceneRenderer::getRasterizerState(cons
 	}
 }
 
-bool ForwardRendererSceneRenderer::setPerMaterialData(const CurrentWorkingData& currentData, const Material* pMaterial)
+bool DeferredRendererSceneRenderer::setPerMaterialData(const CurrentWorkingData& currentData, const Material* pMaterial)
 {
 	const auto& pRsState = getRasterizerState(currentData.pMaterial);
 	if (pRsState != mpLastSetRs)

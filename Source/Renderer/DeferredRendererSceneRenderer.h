@@ -30,11 +30,11 @@
 
 using namespace Falcor;
 
-class ForwardRendererSceneRenderer : public SceneRenderer
+class DeferredRendererSceneRenderer : public SceneRenderer
 {
 public:
-	using SharedPtr = std::shared_ptr<ForwardRendererSceneRenderer>;
-	~ForwardRendererSceneRenderer() = default;
+	using SharedPtr = std::shared_ptr<DeferredRendererSceneRenderer>;
+	~DeferredRendererSceneRenderer() = default;
 	enum class Mode
 	{
 		All,
@@ -49,7 +49,7 @@ private:
 	bool setPerMeshData(const CurrentWorkingData& currentData, const Mesh* pMesh) override;
 	bool setPerMaterialData(const CurrentWorkingData& currentData, const Material* pMaterial) override;
 	RasterizerState::SharedPtr getRasterizerState(const Material* pMaterial);
-	ForwardRendererSceneRenderer(const Scene::SharedPtr& pScene);
+	DeferredRendererSceneRenderer(const Scene::SharedPtr& pScene);
 	std::vector<bool> mTransparentMeshes;
 	Mode mRenderMode = Mode::All;
 	bool mHasOpaqueObjects = false;
