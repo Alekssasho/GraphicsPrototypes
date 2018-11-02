@@ -53,7 +53,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source;$(SolutionDir)ThirdParty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -66,7 +66,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source;$(SolutionDir)ThirdParty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -75,11 +75,14 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\GI\GlobaIllumination.cpp" />
     <ClCompile Include="..\..\Source\Renderer\DeferredRenderer.cpp" />
     <ClCompile Include="..\..\Source\Renderer\DeferredRendererControls.cpp" />
     <ClCompile Include="..\..\Source\Renderer\DeferredRendererSceneRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\GI\Data\HostDeviceSurfelsData.h" />
+    <ClInclude Include="..\..\Source\GI\GlobaIllumination.h" />
     <ClInclude Include="..\..\Source\Renderer\DeferredRenderer.h" />
     <ClInclude Include="..\..\Source\Renderer\DeferredRendererSceneRenderer.h" />
   </ItemGroup>

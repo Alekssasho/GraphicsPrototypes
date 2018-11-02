@@ -150,8 +150,9 @@ void DeferredRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pSce
 
 		vec3 position = pModel->getCenter();
 		float radius = pModel->getRadius();
-		position.y += 0.1f * radius;
-		pScene->setCameraSpeed(radius * 0.03f);
+		position.y += 0.3f * radius;
+		position.z += 2 * radius;
+		pScene->setCameraSpeed(radius * 0.3f);
 
 		pCamera->setPosition(position);
 		pCamera->setTarget(position + vec3(0, -0.3f, -radius));
@@ -196,6 +197,8 @@ void DeferredRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pSce
     
 	pSample->setCurrentTime(0);
 	mpSceneRenderer->getScene()->getActiveCamera()->setDepthRange(0.1f, 100.0f);
+
+	mGI.Initilize();
 }
 
 void DeferredRenderer::resetScene()
@@ -283,7 +286,7 @@ void DeferredRenderer::initAA(SampleCallbacks* pSample)
 
 void DeferredRenderer::initPostProcess()
 {
-	mpToneMapper = ToneMapping::create(ToneMapping::Operator::Aces);
+	mpToneMapper = ToneMapping::create(ToneMapping::Operator::Clamp);
 }
 
 void DeferredRenderer::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)

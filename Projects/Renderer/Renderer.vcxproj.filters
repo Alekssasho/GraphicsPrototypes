@@ -16,6 +16,12 @@
     <Filter Include="Data">
       <UniqueIdentifier>{6750c9d8-5a66-49b4-a6ef-1ea23ab48a78}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GI">
+      <UniqueIdentifier>{c90fc6b4-1aa9-4d54-b062-11c2ff1c1d8d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GI\Data">
+      <UniqueIdentifier>{7aa808b3-7971-4fd3-8cc2-e2fd4a558fba}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Source\Renderer\DeferredRenderer.cpp">
@@ -27,6 +33,9 @@
     <ClCompile Include="..\..\Source\Renderer\DeferredRendererSceneRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\GI\GlobaIllumination.cpp">
+      <Filter>GI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Source\Renderer\DeferredRenderer.h">
@@ -34,6 +43,12 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\Renderer\DeferredRendererSceneRenderer.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\GI\Data\HostDeviceSurfelsData.h">
+      <Filter>GI\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\GI\GlobaIllumination.h">
+      <Filter>GI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

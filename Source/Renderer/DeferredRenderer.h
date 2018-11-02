@@ -30,6 +30,8 @@
 #include "SampleTest.h"
 #include "DeferredRendererSceneRenderer.h"
 
+#include "GI/GlobaIllumination.h"
+
 #include <RenderDoc/renderdoc_app.h>
 
 using namespace Falcor;
@@ -251,4 +253,7 @@ private:
 
 	RENDERDOC_API_1_1_2* mpRenderDocAPI = nullptr;
 	bool mCaptureNextFrame = false;
+
+	// GI
+	GlobalIllumination mGI;
 };

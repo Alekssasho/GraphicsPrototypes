@@ -223,6 +223,8 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 			pGui->endGroup();
 		}
 
+		mGI.RenderUI(pGui);
+
 		if (pGui->beginGroup("Renderer Settings"))
 		{
 			pGui->addCheckBox("Depth Pass", mEnableDepthPass);
