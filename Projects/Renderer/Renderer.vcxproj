@@ -87,7 +87,8 @@
     <ClInclude Include="..\..\Source\Renderer\DeferredRendererSceneRenderer.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\Source\Renderer\Data\ApplyAO.slang" />
+    <None Include="..\..\Source\GI\Data\VisualizeSurfels.slang" />
+    <None Include="..\..\Source\Renderer\Data\ApplyAOGI.slang" />
     <None Include="..\..\Source\Renderer\Data\DepthPass.ps.slang" />
     <None Include="..\..\Source\Renderer\Data\GBufferPass.slang" />
     <None Include="..\..\Source\Renderer\Data\LightingPass.ps.slang" />

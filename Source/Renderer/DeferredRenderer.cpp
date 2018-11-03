@@ -112,7 +112,7 @@ void DeferredRenderer::initShadowPass(uint32_t windowWidth, uint32_t windowHeigh
 void DeferredRenderer::initSSAO()
 {
 	mSSAO.pSSAO = SSAO::create(uvec2(1024));
-	mSSAO.pApplySSAOPass = FullScreenPass::create("ApplyAO.slang");
+	mSSAO.pApplySSAOPass = FullScreenPass::create("ApplyAOGI.slang");
 	mSSAO.pVars = GraphicsVars::create(mSSAO.pApplySSAOPass->getProgram()->getReflector());
 
 	Sampler::Desc desc;
@@ -198,7 +198,7 @@ void DeferredRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pSce
 	pSample->setCurrentTime(0);
 	mpSceneRenderer->getScene()->getActiveCamera()->setDepthRange(0.1f, 100.0f);
 
-	mGI.Initilize();
+	mGI.Initilize(uvec2(pTargetFbo->getWidth(), pTargetFbo->getHeight()));
 }
 
 void DeferredRenderer::resetScene()
@@ -482,18 +482,38 @@ void DeferredRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 
 void DeferredRenderer::ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
 {
-	PROFILE(ssao);
 	if (mControls[EnableSSAO].enabled)
 	{
-		MarkerScope scope(pContext, "SSAO");
-		Texture::SharedPtr pDepth = mpGBufferFbo->getDepthStencilTexture();
-		Texture::SharedPtr pAOMap = mSSAO.pSSAO->generateAOMap(pContext, mpSceneRenderer->getScene()->getActiveCamera().get(), pDepth, mpGBufferFbo->getColorTexture(2));
+		{
+			PROFILE(ssao);
+			MarkerScope scope(pContext, "SSAO");
+			mSSAO.pVars->setTexture("gAOMap",
+				mSSAO.pSSAO->generateAOMap(
+					pContext,
+					mpSceneRenderer->getScene()->getActiveCamera().get(),
+					mpGBufferFbo->getDepthStencilTexture(),
+					mpGBufferFbo->getColorTexture(2))
+			);
+		}
+		{
+			// TODO: place at better place
+			PROFILE(gi);
+			MarkerScope scope(pContext, "GI");
+			mSSAO.pVars->setTexture("gGIMap",
+				mGI.GenerateGIMap(
+					pContext,
+					mpSceneRenderer->getScene()->getActiveCamera().get(),
+					mpGBufferFbo->getDepthStencilTexture(),
+					mpGBufferFbo->getColorTexture(2))
+			);
+		}
+
 		mSSAO.pVars->setTexture("gColor", mpPostProcessFbo->getColorTexture(0));
-		mSSAO.pVars->setTexture("gAOMap", pAOMap);
 
 		pContext->getGraphicsState()->setFbo(pTargetFbo);
 		pContext->setGraphicsVars(mSSAO.pVars);
 
+		MarkerScope scope(pContext, "Apply AO & GI");
 		mSSAO.pApplySSAOPass->execute(pContext);
 	}
 }
@@ -752,6 +772,7 @@ int main(int argc, char** argv)
 {
 	Falcor::addDataDirectory("../../External/Falcor/Media");
 	Falcor::addDataDirectory("../../Source/Renderer/Data");
+	Falcor::addDataDirectory("../../Source/GI/Data");
 
 	Falcor::ArgList args;
 	args.parseCommandLine(GetCommandLineA());

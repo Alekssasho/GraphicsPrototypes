@@ -62,7 +62,10 @@
     <None Include="..\..\Source\Renderer\Data\LightingPass.ps.slang">
       <Filter>Data</Filter>
     </None>
-    <None Include="..\..\Source\Renderer\Data\ApplyAO.slang">
+    <None Include="..\..\Source\GI\Data\VisualizeSurfels.slang">
+      <Filter>GI\Data</Filter>
+    </None>
+    <None Include="..\..\Source\Renderer\Data\ApplyAOGI.slang">
       <Filter>Data</Filter>
     </None>
   </ItemGroup>
