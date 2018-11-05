@@ -68,5 +68,11 @@
     <None Include="..\..\Source\Renderer\Data\ApplyAOGI.slang">
       <Filter>Data</Filter>
     </None>
+    <None Include="..\..\Source\GI\Data\ComputeCoverage.slang">
+      <Filter>GI\Data</Filter>
+    </None>
+    <None Include="..\..\Source\GI\Data\GICommon.slang">
+      <Filter>GI\Data</Filter>
+    </None>
   </ItemGroup>
 </Project>

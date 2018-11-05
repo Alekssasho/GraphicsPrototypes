@@ -25,4 +25,13 @@ private:
 	FullScreenPass::UniquePtr m_VisualizeSurfelsProgram;
 	GraphicsVars::SharedPtr m_VisualizeSurfelsVars;
 	bool m_VisualizeSurfels = false;
+
+	// Utility objects
+	ComputeState::SharedPtr m_ComputeState;
+	ParameterBlock::SharedPtr m_CommonData;
+
+	// Surfels Placement
+	ComputeProgram::SharedPtr m_SurfelCoverage;
+	ComputeVars::SharedPtr m_SurfelCoverageVars;
+	Texture::SharedPtr m_Coverage;
 };

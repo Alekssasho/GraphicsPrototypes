@@ -10,6 +10,6 @@ struct Surfel
 	float3 Color    DEFAULTS(float3(0.0f, 0.0f, 0.0f));
 };
 
-#define SURFELS_RADIUS 0.125f
+static const float SurfelRadius = 0.125f;
 
 #endif
