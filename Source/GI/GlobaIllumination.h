@@ -11,6 +11,8 @@ public:
 	void RenderUI(Gui* pGui);
 
 	Texture::SharedPtr GenerateGIMap(RenderContext* pContext, const Camera* pCamera, const Texture::SharedPtr& pDepthTexture, const Texture::SharedPtr& pNormalTexture);
+
+	Texture::SharedPtr GetSurfelCoverageTexture() { return m_Coverage; }
 private:
 	void ResetGI();
 

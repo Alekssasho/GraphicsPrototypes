@@ -49,10 +49,6 @@ public:
 	void onGuiRender(SampleCallbacks* pSample, Gui* pGui) override;
 	void onDroppedFile(SampleCallbacks* pSample, const std::string& filename) override;
 
-	//Testing
-	void onInitializeTesting(SampleCallbacks* pSample) override;
-	void onBeginTestFrame(SampleTest* pSampleTest) override;
-
 private:
 	Fbo::SharedPtr mpGBufferFbo;
 	Fbo::SharedPtr mpMainFbo;
@@ -152,8 +148,9 @@ private:
 	void executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
 	void runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo);
 	void postProcess(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
-	void ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
-
+	void ambientOcclusion(RenderContext* pContext);
+	void runGI(RenderContext* pContext);
+	void applyAOGI(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
 
 	void renderOpaqueObjects(RenderContext* pContext);
 	void renderTransparentObjects(RenderContext* pContext);
@@ -203,6 +200,7 @@ private:
 		EnableTransparency,
 		VisualizeCascades,
 		VisualizeAO,
+		VisualizeSurfelCoverage,
 		Count
 	};
 

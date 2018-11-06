@@ -480,41 +480,43 @@ void DeferredRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 	}
 }
 
-void DeferredRenderer::ambientOcclusion(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
+void DeferredRenderer::runGI(RenderContext* pContext)
+{
+	PROFILE(gi);
+	MarkerScope scope(pContext, "GI");
+	mSSAO.pVars->setTexture("gGIMap",
+		mGI.GenerateGIMap(
+			pContext,
+			mpSceneRenderer->getScene()->getActiveCamera().get(),
+			mpGBufferFbo->getDepthStencilTexture(),
+			mpGBufferFbo->getColorTexture(2))
+	);
+}
+
+void DeferredRenderer::applyAOGI(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
+{
+	mSSAO.pVars->setTexture("gColor", mpPostProcessFbo->getColorTexture(0));
+
+	pContext->getGraphicsState()->setFbo(pTargetFbo);
+	pContext->setGraphicsVars(mSSAO.pVars);
+
+	MarkerScope scope(pContext, "Apply AO & GI");
+	mSSAO.pApplySSAOPass->execute(pContext);
+}
+
+void DeferredRenderer::ambientOcclusion(RenderContext* pContext)
 {
 	if (mControls[EnableSSAO].enabled)
 	{
-		{
-			PROFILE(ssao);
-			MarkerScope scope(pContext, "SSAO");
-			mSSAO.pVars->setTexture("gAOMap",
-				mSSAO.pSSAO->generateAOMap(
-					pContext,
-					mpSceneRenderer->getScene()->getActiveCamera().get(),
-					mpGBufferFbo->getDepthStencilTexture(),
-					mpGBufferFbo->getColorTexture(2))
-			);
-		}
-		{
-			// TODO: place at better place
-			PROFILE(gi);
-			MarkerScope scope(pContext, "GI");
-			mSSAO.pVars->setTexture("gGIMap",
-				mGI.GenerateGIMap(
-					pContext,
-					mpSceneRenderer->getScene()->getActiveCamera().get(),
-					mpGBufferFbo->getDepthStencilTexture(),
-					mpGBufferFbo->getColorTexture(2))
-			);
-		}
-
-		mSSAO.pVars->setTexture("gColor", mpPostProcessFbo->getColorTexture(0));
-
-		pContext->getGraphicsState()->setFbo(pTargetFbo);
-		pContext->setGraphicsVars(mSSAO.pVars);
-
-		MarkerScope scope(pContext, "Apply AO & GI");
-		mSSAO.pApplySSAOPass->execute(pContext);
+		PROFILE(ssao);
+		MarkerScope scope(pContext, "SSAO");
+		mSSAO.pVars->setTexture("gAOMap",
+			mSSAO.pSSAO->generateAOMap(
+				pContext,
+				mpSceneRenderer->getScene()->getActiveCamera().get(),
+				mpGBufferFbo->getDepthStencilTexture(),
+				mpGBufferFbo->getColorTexture(2))
+		);
 	}
 }
 
@@ -526,17 +528,6 @@ void DeferredRenderer::executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTarg
 		MarkerScope scope(pContext, "FXAA");
 		pContext->blit(pTargetFbo->getColorTexture(0)->getSRV(), mpMainFbo->getRenderTargetView(0));
 		mpFXAA->execute(pContext, mpMainFbo->getColorTexture(0), pTargetFbo);
-	}
-}
-
-void DeferredRenderer::onBeginTestFrame(SampleTest* pSampleTest)
-{
-	//  Already existing. Is this a problem?
-	auto nextTriggerType = pSampleTest->getNextTriggerType();
-	if (nextTriggerType == SampleTest::TriggerType::None)
-	{
-		SampleTest::TaskType taskType = (nextTriggerType == SampleTest::TriggerType::Frame) ? pSampleTest->getNextFrameTaskType() : pSampleTest->getNextTimeTaskType();
-		mShadowPass.pCsm->setSdsmReadbackLatency(taskType == SampleTest::TaskType::ScreenCaptureTask ? 0 : 1);
 	}
 }
 
@@ -575,10 +566,21 @@ void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, const RenderConte
 			return;
 		}
 
+		runGI(pRenderContext.get());
+
+		if (mControls[ControlID::VisualizeSurfelCoverage].enabled)
+		{
+			pRenderContext->blit(mGI.GetSurfelCoverageTexture()->getSRV(), pTargetFbo->getRenderTargetView(0));
+
+			// Do not do any post process/ao/aa
+			return;
+		}
+
 		Fbo::SharedPtr pPostProcessDst = mControls[EnableSSAO].enabled ? mpPostProcessFbo : pTargetFbo;
 		postProcess(pRenderContext.get(), pPostProcessDst);
 		runTAA(pRenderContext.get(), pPostProcessDst); // This will only run if we are in TAA mode
-		ambientOcclusion(pRenderContext.get(), pTargetFbo);
+		ambientOcclusion(pRenderContext.get());
+		applyAOGI(pRenderContext.get(), pTargetFbo);
 		executeFXAA(pRenderContext.get(), pTargetFbo);
 
 		endFrame(pRenderContext.get());
@@ -593,7 +595,6 @@ void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, const RenderConte
 		mCaptureNextFrame = false;
 		EndRenderDocCapture(pSample, pRenderContext);
 	}
-
 }
 
 void DeferredRenderer::applyCameraPathState()
@@ -680,34 +681,6 @@ void DeferredRenderer::setActiveCameraAspectRatio(uint32_t w, uint32_t h)
 {
 	mpSceneRenderer->getScene()->getActiveCamera()->setAspectRatio((float)w / (float)h);
 }
-
-	void DeferredRenderer::onInitializeTesting(SampleCallbacks* pSample)
-	{
-		auto args = pSample->getArgList();
-		std::vector<ArgList::Arg> model = args.getValues("loadmodel");
-		if (!model.empty())
-		{
-			loadModel(pSample, model[0].asString(), false);
-		}
- 
-		std::vector<ArgList::Arg> scene = args.getValues("loadscene");
-		if (!scene.empty())
-		{
-			loadScene(pSample, scene[0].asString(), false);
-		}
- 
-		std::vector<ArgList::Arg> cameraPos = args.getValues("camerapos");
-		if (!cameraPos.empty())
-		{
-			mpSceneRenderer->getScene()->getActiveCamera()->setPosition(glm::vec3(cameraPos[0].asFloat(), cameraPos[1].asFloat(), cameraPos[2].asFloat()));
-		}
- 
-		std::vector<ArgList::Arg> cameraTarget = args.getValues("cameratarget");
-		if (!cameraTarget.empty())
-		{
-			mpSceneRenderer->getScene()->getActiveCamera()->setTarget(glm::vec3(cameraTarget[0].asFloat(), cameraTarget[1].asFloat(), cameraTarget[2].asFloat()));
-		}
-	}
 
 void DeferredRenderer::StartRenderDocCapture(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
 {

@@ -55,6 +55,7 @@ void DeferredRenderer::initControls()
 	mControls[ControlID::EnableSSAO] = { true, false, "" };
 	mControls[ControlID::VisualizeCascades] = { false, false, "_VISUALIZE_CASCADES" };
 	mControls[ControlID::VisualizeAO] = { false, false, "VISUALIZE_AO_MAP" };
+	mControls[ControlID::VisualizeSurfelCoverage] = { false, false, "" };
 
 	for (uint32_t i = 0; i < ControlID::Count; i++)
 	{
@@ -224,6 +225,11 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 		}
 
 		mGI.RenderUI(pGui);
+		if (pGui->beginGroup("Debug GI"))
+		{
+			pGui->addCheckBox("Visualize Surfel Coverage", mControls[ControlID::VisualizeSurfelCoverage].enabled);
+			pGui->endGroup();
+		}
 
 		if (pGui->beginGroup("Renderer Settings"))
 		{
