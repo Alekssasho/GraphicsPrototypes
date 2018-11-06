@@ -6,16 +6,17 @@ float computeCoverage(float3 posW, float3 normal, Surfel surfel)
 {
     float NdotSN = dot(normal, surfel.Normal);
 
-	// If normals are not in the same direction bail out
-	if(NdotSN <= 0)
+    // If normals are not in the same direction bail out
+    if(NdotSN <= 0)
         return 0.0f;
 
-	// Every pixel inside he surfel radius gets equal coverage
-	// TODO: maybe some kind of attenuation is needed
+    // Every pixel inside he surfel radius gets equal coverage
     float3 WtoS = surfel.Position - posW;
-    if (dot(WtoS, WtoS) < SurfelRadius * SurfelRadius)
+    float distanceSquared = dot(WtoS, WtoS);
+    if (distanceSquared < SurfelRadiusSquared)
     {
-        return 1.0f * NdotSN;
+        float coeff = 1.0f - (distanceSquared / SurfelRadiusSquared);
+        return coeff * NdotSN;
     }
 
     return 0.0f;

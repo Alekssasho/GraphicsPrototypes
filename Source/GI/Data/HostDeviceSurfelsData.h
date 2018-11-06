@@ -11,5 +11,6 @@ struct Surfel
 };
 
 static const float SurfelRadius = 0.125f;
+static const float SurfelRadiusSquared = SurfelRadius * SurfelRadius;
 
 #endif
