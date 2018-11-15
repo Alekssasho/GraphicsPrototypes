@@ -22,8 +22,14 @@ float computeCoverage(float3 posW, float3 normal, Surfel surfel)
     return 0.0f;
 }
 
-[numthreads(16, 16, 1)]
-void main(uint3 tid : SV_DispatchThreadID)
+#define BLOCK_SIZE_X 16
+#define BLOCK_SIZE_Y 16
+
+groupshared uint2 groupScreenPos[BLOCK_SIZE_X * BLOCK_SIZE_Y];
+groupshared float groupCoverage[BLOCK_SIZE_X * BLOCK_SIZE_Y];
+
+[numthreads(BLOCK_SIZE_X, BLOCK_SIZE_Y, 1)]
+void main(uint3 tid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
     uint numSurfels = 0;
     uint stride = 0;
@@ -38,5 +44,33 @@ void main(uint3 tid : SV_DispatchThreadID)
         coverage += computeCoverage(posW, normal, Data.surfels.SurfelStorage[i]);
     }
 
+    groupCoverage[groupIndex] = coverage;
+    groupScreenPos[groupIndex] = tid.xy;
+
+    GroupMemoryBarrierWithGroupSync();
+
     gCoverage[tid.xy] = coverage;
+
+    // TODO: write with Wave Instructions when we support SM 6.0
+    uint threadCount = BLOCK_SIZE_X * BLOCK_SIZE_Y;
+    [unroll]
+    for (uint step = threadCount / 2; step > 0; step >>= 1)
+    {
+        if (groupIndex < step
+            && (groupCoverage[groupIndex] > groupCoverage[groupIndex + step]))
+        {
+            groupCoverage[groupIndex] = groupCoverage[groupIndex + step];
+            groupScreenPos[groupIndex] = groupScreenPos[groupIndex + step];
+        }
+
+        if(step > 32)
+        {
+            GroupMemoryBarrierWithGroupSync();
+        }
+    }
+
+    if(groupIndex == 0)
+    {
+        gCoverage[groupScreenPos[0]] = 1000.0f;
+    }
 }

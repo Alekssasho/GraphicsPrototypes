@@ -72,7 +72,7 @@ struct PsOut
 #endif
 };
 
-PsOut ps(MainVsOut vOut, float4 pixelCrd : SV_POSITION)
+PsOut ps(MainVsOut vOut)
 {
     PsOut psOut;
 
