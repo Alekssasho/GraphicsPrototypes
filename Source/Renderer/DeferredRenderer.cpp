@@ -480,13 +480,14 @@ void DeferredRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 	}
 }
 
-void DeferredRenderer::runGI(RenderContext* pContext)
+void DeferredRenderer::runGI(RenderContext* pContext, double currentTime)
 {
 	PROFILE(gi);
 	MarkerScope scope(pContext, "GI");
 	mSSAO.pVars->setTexture("gGIMap",
 		mGI.GenerateGIMap(
 			pContext,
+			currentTime,
 			mpSceneRenderer->getScene()->getActiveCamera().get(),
 			mpGBufferFbo->getDepthStencilTexture(),
 			mpGBufferFbo->getColorTexture(2))
@@ -566,7 +567,7 @@ void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, const RenderConte
 			return;
 		}
 
-		runGI(pRenderContext.get());
+		runGI(pRenderContext.get(), pSample->getCurrentTime());
 
 		if (mControls[ControlID::VisualizeSurfelCoverage].enabled)
 		{

@@ -89,6 +89,7 @@
   <ItemGroup>
     <None Include="..\..\Source\GI\Data\ComputeCoverage.slang" />
     <None Include="..\..\Source\GI\Data\GICommon.slang" />
+    <None Include="..\..\Source\GI\Data\Random.slang" />
     <None Include="..\..\Source\GI\Data\VisualizeSurfels.slang" />
     <None Include="..\..\Source\Renderer\Data\ApplyAOGI.slang" />
     <None Include="..\..\Source\Renderer\Data\DepthPass.ps.slang" />

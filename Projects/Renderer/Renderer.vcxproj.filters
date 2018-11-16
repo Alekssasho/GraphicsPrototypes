@@ -74,5 +74,8 @@
     <None Include="..\..\Source\GI\Data\GICommon.slang">
       <Filter>GI\Data</Filter>
     </None>
+    <None Include="..\..\Source\GI\Data\Random.slang">
+      <Filter>GI\Data</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -10,7 +10,7 @@ public:
 	void Initilize(const uvec2& giMapSize);
 	void RenderUI(Gui* pGui);
 
-	Texture::SharedPtr GenerateGIMap(RenderContext* pContext, const Camera* pCamera, const Texture::SharedPtr& pDepthTexture, const Texture::SharedPtr& pNormalTexture);
+	Texture::SharedPtr GenerateGIMap(RenderContext* pContext, double currentTime, const Camera* pCamera, const Texture::SharedPtr& pDepthTexture, const Texture::SharedPtr& pNormalTexture);
 
 	Texture::SharedPtr GetSurfelCoverageTexture() { return m_Coverage; }
 private:
@@ -18,6 +18,7 @@ private:
 
 	// Data Structures
 	StructuredBuffer::SharedPtr m_Surfels;
+	StructuredBuffer::SharedPtr m_SurfelCount;
 	int32_t m_MaxSurfels;
 
 	// Outputs
@@ -36,4 +37,6 @@ private:
 	ComputeProgram::SharedPtr m_SurfelCoverage;
 	ComputeVars::SharedPtr m_SurfelCoverageVars;
 	Texture::SharedPtr m_Coverage;
+	float m_SpawnChance = 1.0f;
+	bool m_UpdateTime = true;
 };

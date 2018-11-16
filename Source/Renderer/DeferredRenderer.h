@@ -149,7 +149,7 @@ private:
 	void runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo);
 	void postProcess(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
 	void ambientOcclusion(RenderContext* pContext);
-	void runGI(RenderContext* pContext);
+	void runGI(RenderContext* pContext, double currentTime);
 	void applyAOGI(RenderContext* pContext, Fbo::SharedPtr pTargetFbo);
 
 	void renderOpaqueObjects(RenderContext* pContext);
