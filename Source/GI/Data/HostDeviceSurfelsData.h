@@ -13,4 +13,8 @@ struct Surfel
 static const float SurfelRadius = 0.125f;
 static const float SurfelRadiusSquared = SurfelRadius * SurfelRadius;
 
+static const uint WORLD_STRUCTURE_DIMENSION = 64;
+static const float WORLD_DIMENSION = 6.0f;
+static const float WORLD_STRUCTURE_CHUNK_SIZE = (WORLD_DIMENSION / WORLD_STRUCTURE_DIMENSION);
+
 #endif

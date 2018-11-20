@@ -1,9 +1,11 @@
-__import GICommon;
-__import Random;
+import GICommon;
+import Random;
 
-#define COVERAGE_THRESHOLD 0.5
+#define COVERAGE_THRESHOLD 0.25
 
 RWTexture2D<float2> gCoverage;
+AppendStructuredBuffer<uint2> gSurfelSpawnCoords;
+RWStructuredBuffer<uint> gNewSurfelsCount;
 
 cbuffer GlobalState
 {
@@ -19,10 +21,9 @@ float computeCoverage(float3 posW, float3 normal, Surfel surfel)
     if(NdotSN <= 0)
         return 0.0f;
 
-    // Every pixel inside he surfel radius gets equal coverage
     float3 WtoS = surfel.Position - posW;
     float distanceSquared = dot(WtoS, WtoS);
-	// TODO: possible add double the surfel radius, in order to push new surfels as far as possible from other surfels
+	// Double the surfel radius, in order to push new surfels as far as possible from other surfels
     if (distanceSquared < SurfelRadiusSquared * 4)
     {
         float coeff = 1.0f - (distanceSquared / (SurfelRadiusSquared * 4));
@@ -56,7 +57,7 @@ float GetPixelProjectedArea(uint2 loc)
     float3 c = GetWorldPosition(loc + uint2(0, 1));
     float3 d = GetWorldPosition(loc + uint2(1, 1));
     float area = 0.5f * (length(cross(b - a, d - a)) + length(cross(d - a, c - a)));
-    return area * 5000.0f;
+    return saturate(area * 900000.0f);
 }
 
 #define BLOCK_SIZE_X 16
@@ -71,6 +72,7 @@ void main(uint3 tid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
     float3 posW = GetWorldPosition(tid.xy);
     float3 normal = GetNormal(tid.xy);
 
+	// TODO: use acceleration structure
     float coverage = 0.0f;
     for (uint i = 0; i < Data.Surfels.Count[0]; ++i)
     {
@@ -106,29 +108,15 @@ void main(uint3 tid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
     {
         uint seedState = RandomSeed(globalTime * 1000 + tid.x * 4096 + tid.y);
         float chance = RandomFloat(seedState);
+		// TODO: pixArea needs tweaking
         float pixArea = GetPixelProjectedArea(groupScreenPos[0]);
-        if (chance > globalSpawnChance)
+		gCoverage[groupScreenPos[0]] = float2(groupCoverage[0], pixArea);
+        if (chance * pixArea > globalSpawnChance)
         {
-			//gCoverage[groupScreenPos[0]] = 1000.0f;
-            gCoverage[groupScreenPos[0]] = float2(groupCoverage[0], pixArea);
-
-			// Create new Surfel
-            uint dim;
-            uint stride;
-            Data.Surfels.Storage.GetDimensions(dim, stride);
-            if (Data.Surfels.Count[0] >= dim)
-                return;
-
-            uint index;
-            InterlockedAdd(Data.Surfels.Count[0], 1, index);
-            Surfel surfel;
-            surfel.Position = GetWorldPosition(groupScreenPos[0]);
-            surfel.Normal = GetNormal(groupScreenPos[0]);
-            surfel.Color.r = RandomFloat(seedState);
-            surfel.Color.g = RandomFloat(seedState);
-            surfel.Color.b = RandomFloat(seedState);
-
-            Data.Surfels.Storage[index] = surfel;
+            uint index = GetWorldStructureIndex(GetWorldPosition(groupScreenPos[0]));
+            uint ind;
+            InterlockedAdd(gNewSurfelsCount[index], 1, ind);
+            gSurfelSpawnCoords.Append(groupScreenPos[0]);
         }
     }
 }

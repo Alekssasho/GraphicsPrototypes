@@ -16,16 +16,34 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 
 	m_SurfelCoverage = ComputeProgram::createFromFile("ComputeCoverage.slang", "main");
 	m_SurfelCoverageVars = ComputeVars::create(m_SurfelCoverage->getReflector());
+
+	m_SpawnSurfel = ComputeProgram::createFromFile("SpawnSurfels.slang", "main");
+	m_SpawnSurfelVars = ComputeVars::create(m_SpawnSurfel->getReflector());
+
 	m_Coverage = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RG32Float, 1, 1, nullptr, Resource::BindFlags::UnorderedAccess | Resource::BindFlags::ShaderResource);
+
+	uint32_t initialData[3] = { 0, 1, 1 };
+	m_NewSurfelCountBuffer = Buffer::create(sizeof(uint32_t) * 3, Resource::BindFlags::UnorderedAccess, Buffer::CpuAccess::None, &initialData);
+
+	m_SurfelSpawnCoords = StructuredBuffer::create(m_SurfelCoverage, "gSurfelSpawnCoords", (giMapSize.x / 16) * (giMapSize.y / 16));
+
+	m_NewSurfelCounts = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION);
 
 	m_ComputeState = ComputeState::create();
 	m_CommonData = ParameterBlock::create(m_SurfelCoverage->getReflector()->getParameterBlock("Data"), true);
 
 	m_SurfelCoverageVars["GlobalState"]["globalSpawnChance"] = m_SpawnChance;
+	m_SurfelCoverageVars->setStructuredBuffer("gSurfelSpawnCoords", m_SurfelSpawnCoords);
+	m_SurfelCoverageVars->setStructuredBuffer("gNewSurfelsCount", m_NewSurfelCounts);
+
+	m_SpawnSurfelVars->setStructuredBuffer("gSurfelSpawnCoords", m_SurfelSpawnCoords);
+	m_SpawnSurfelVars->setRawBuffer("gSurfelCount", m_SurfelSpawnCoords->getUAVCounter());
+
 	m_SurfelCoverageVars->setParameterBlock("Data", m_CommonData);
+	m_SpawnSurfelVars->setParameterBlock("Data", m_CommonData);
 	m_VisualizeSurfelsVars->setParameterBlock("Data", m_CommonData);
 
-	m_MaxSurfels = 1024;// *1024;
+	m_MaxSurfels = 1024 *1024;
 	ResetGI();
 }
 
@@ -71,16 +89,6 @@ void GlobalIllumination::ResetGI()
 {
 	auto var = m_CommonData->getReflection()->getResource("Surfels.Storage");
 	m_Surfels = StructuredBuffer::create(var->getName(), var->getType()->unwrapArray()->asResourceType()->inherit_shared_from_this::shared_from_this(), m_MaxSurfels);
-	//// Random initialize memory
-	//std::vector<Surfel> randomSurfels(m_MaxSurfels);
-	//std::generate(randomSurfels.begin(), randomSurfels.end(), []() {
-	//	Surfel result;
-	//	result.Position = glm::linearRand(glm::vec3(-2.0f, -2.0f, -2.0f), glm::vec3(2.0f, 2.0f, 2.0f));
-	//	result.Normal = glm::normalize(glm::linearRand(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f)));
-	//	result.Color = glm::linearRand(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-	//	return result;
-	//});
-	//m_Surfels->setBlob(randomSurfels.data(), 0, randomSurfels.size() * sizeof(Surfel));
 
 	m_CommonData->setStructuredBuffer("Surfels.Storage", m_Surfels);
 
@@ -100,6 +108,10 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, do
 		m_CommonData->getDefaultConstantBuffer().get(),
 		"Camera");
 
+	// Reset counter
+	uint32_t zero = 0;
+	m_SurfelSpawnCoords->getUAVCounter()->updateData(&zero, 0, sizeof(zero));
+
 	// New Surfel Placement
 	// Compute Coverage
 	m_SurfelCoverageVars->setTexture("gCoverage", m_Coverage);
@@ -113,6 +125,17 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, do
 	pContext->pushComputeVars(m_SurfelCoverageVars);
 
 	pContext->dispatch(m_Coverage->getWidth() / 16, m_Coverage->getHeight() / 16, 1);
+
+	pContext->popComputeVars();
+	pContext->popComputeState();
+
+	pContext->copyBufferRegion(m_NewSurfelCountBuffer.get(), 0, m_SurfelSpawnCoords->getUAVCounter().get(), 0, sizeof(uint32_t));
+
+	m_ComputeState->setProgram(m_SpawnSurfel);
+	pContext->pushComputeState(m_ComputeState);
+	pContext->pushComputeVars(m_SpawnSurfelVars);
+
+	pContext->dispatchIndirect(m_NewSurfelCountBuffer.get(), 0);
 
 	pContext->popComputeVars();
 	pContext->popComputeState();

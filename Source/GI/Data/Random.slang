@@ -18,7 +18,7 @@ uint RandomSeed(uint seed)
     return seed;
 }
 
-float RandomFloat(uint seed)
+float RandomFloat(inout uint seed)
 {
     return float(RandXORShift(seed)) * (1.0 / 4294967296.0);
 }

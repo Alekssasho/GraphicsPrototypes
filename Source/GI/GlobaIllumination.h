@@ -36,7 +36,14 @@ private:
 	// Surfels Placement
 	ComputeProgram::SharedPtr m_SurfelCoverage;
 	ComputeVars::SharedPtr m_SurfelCoverageVars;
-	Texture::SharedPtr m_Coverage;
+	ComputeProgram::SharedPtr m_SpawnSurfel;
+	ComputeVars::SharedPtr m_SpawnSurfelVars;
 	float m_SpawnChance = 1.0f;
 	bool m_UpdateTime = true;
+
+	// Resources
+	Texture::SharedPtr m_Coverage;
+	StructuredBuffer::SharedPtr m_SurfelSpawnCoords;
+	StructuredBuffer::SharedPtr m_NewSurfelCounts;
+	Buffer::SharedPtr m_NewSurfelCountBuffer;
 };
