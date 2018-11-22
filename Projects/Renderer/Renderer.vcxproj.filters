@@ -80,5 +80,8 @@
     <None Include="..\..\Source\GI\Data\SpawnSurfels.slang">
       <Filter>GI\Data</Filter>
     </None>
+    <None Include="..\..\Source\GI\Data\ExclusiveScan.slang">
+      <Filter>GI\Data</Filter>
+    </None>
   </ItemGroup>
 </Project>

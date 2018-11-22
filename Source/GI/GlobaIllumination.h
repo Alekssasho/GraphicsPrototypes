@@ -16,6 +16,8 @@ public:
 private:
 	void ResetGI();
 
+	void ExclusiveScan(RenderContext* pContext);
+
 	// Data Structures
 	StructuredBuffer::SharedPtr m_Surfels;
 	StructuredBuffer::SharedPtr m_SurfelCount;
@@ -46,4 +48,12 @@ private:
 	StructuredBuffer::SharedPtr m_SurfelSpawnCoords;
 	StructuredBuffer::SharedPtr m_NewSurfelCounts;
 	Buffer::SharedPtr m_NewSurfelCountBuffer;
+
+	// Exclusive Scan implementation
+	StructuredBuffer::SharedPtr m_ScannedNewSurfelCounts;
+	StructuredBuffer::SharedPtr m_ScanAuxiliaryBuffer[2];
+	ComputeProgram::SharedPtr m_ScanBlocks;
+	ComputeProgram::SharedPtr m_ScanSumOfBlocks;
+	ComputeProgram::SharedPtr m_AddSumToBlocks;
+	ComputeVars::SharedPtr m_ScanVars;
 };

@@ -88,6 +88,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Source\GI\Data\ComputeCoverage.slang" />
+    <None Include="..\..\Source\GI\Data\ExclusiveScan.slang" />
     <None Include="..\..\Source\GI\Data\GICommon.slang" />
     <None Include="..\..\Source\GI\Data\Random.slang" />
     <None Include="..\..\Source\GI\Data\SpawnSurfels.slang" />

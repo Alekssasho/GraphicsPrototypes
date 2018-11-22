@@ -2,9 +2,6 @@
 
 #include "Data/HostDeviceSurfelsData.h"
 
-// TODO: not needed
-#include "glm/gtc/random.hpp"
-
 void GlobalIllumination::Initilize(const uvec2& giMapSize)
 {
 	Fbo::Desc fboDesc;
@@ -27,7 +24,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 
 	m_SurfelSpawnCoords = StructuredBuffer::create(m_SurfelCoverage, "gSurfelSpawnCoords", (giMapSize.x / 16) * (giMapSize.y / 16));
 
-	m_NewSurfelCounts = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION);
+	m_NewSurfelCounts = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", WORLD_STRUCTURE_TOTAL_SIZE);
 
 	m_ComputeState = ComputeState::create();
 	m_CommonData = ParameterBlock::create(m_SurfelCoverage->getReflector()->getParameterBlock("Data"), true);
@@ -42,6 +39,16 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_SurfelCoverageVars->setParameterBlock("Data", m_CommonData);
 	m_SpawnSurfelVars->setParameterBlock("Data", m_CommonData);
 	m_VisualizeSurfelsVars->setParameterBlock("Data", m_CommonData);
+
+	// Exclusive Scan
+	m_ScanBlocks = ComputeProgram::createFromFile("ExclusiveScan.slang", "ExclusiveScanInBlocks");
+	m_ScanSumOfBlocks = ComputeProgram::createFromFile("ExclusiveScan.slang", "ExclusiveScanSumsOfBlocks");
+	m_AddSumToBlocks = ComputeProgram::createFromFile("ExclusiveScan.slang", "AddSumsToBlocks");
+	m_ScanVars = ComputeVars::create(m_AddSumToBlocks->getReflector());
+	m_ScannedNewSurfelCounts = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", WORLD_STRUCTURE_TOTAL_SIZE);
+	assert(WORLD_STRUCTURE_TOTAL_SIZE <= (1024 * 1024));
+	m_ScanAuxiliaryBuffer[0] = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", 1024);
+	m_ScanAuxiliaryBuffer[1] = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", 1024);
 
 	m_MaxSurfels = 1024 *1024;
 	ResetGI();
@@ -131,6 +138,8 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, do
 
 	pContext->copyBufferRegion(m_NewSurfelCountBuffer.get(), 0, m_SurfelSpawnCoords->getUAVCounter().get(), 0, sizeof(uint32_t));
 
+	ExclusiveScan(pContext);
+
 	m_ComputeState->setProgram(m_SpawnSurfel);
 	pContext->pushComputeState(m_ComputeState);
 	pContext->pushComputeVars(m_SpawnSurfelVars);
@@ -154,4 +163,33 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, do
 	}
 
 	return m_GIFbo->getColorTexture(0);
+}
+
+void GlobalIllumination::ExclusiveScan(RenderContext* pContext)
+{
+	pContext->pushComputeState(m_ComputeState);
+	pContext->pushComputeVars(m_ScanVars);
+
+	{
+		m_ComputeState->setProgram(m_ScanBlocks);
+		m_ScanVars->setStructuredBuffer("Input", m_NewSurfelCounts);
+		m_ScanVars->setStructuredBuffer("Result", m_ScannedNewSurfelCounts);
+		m_ScanVars->setStructuredBuffer("BlockSums", m_ScanAuxiliaryBuffer[0]);
+		pContext->dispatch(WORLD_STRUCTURE_TOTAL_SIZE / 1024, 1, 1);
+	}
+	{
+		m_ComputeState->setProgram(m_ScanSumOfBlocks);
+		m_ScanVars->setStructuredBuffer("Input", m_ScanAuxiliaryBuffer[0]);
+		m_ScanVars->setStructuredBuffer("Result", m_ScanAuxiliaryBuffer[1]);
+		pContext->dispatch(1, 1, 1);
+	}
+	{
+		m_ComputeState->setProgram(m_AddSumToBlocks);
+		m_ScanVars->setStructuredBuffer("Input", m_ScanAuxiliaryBuffer[1]);
+		m_ScanVars->setStructuredBuffer("Result", m_ScannedNewSurfelCounts);
+		pContext->dispatch(WORLD_STRUCTURE_TOTAL_SIZE / 1024, 1, 1);
+	}
+
+	pContext->popComputeVars();
+	pContext->popComputeState();
 }
