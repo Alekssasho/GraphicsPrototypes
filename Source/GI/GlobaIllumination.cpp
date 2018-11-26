@@ -17,6 +17,9 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_SpawnSurfel = ComputeProgram::createFromFile("SpawnSurfels.slang", "main");
 	m_SpawnSurfelVars = ComputeVars::create(m_SpawnSurfel->getReflector());
 
+	m_UpdateWorldStructure = ComputeProgram::createFromFile("UpdateWorldStructure.slang", "main");
+	m_UpdateWorldStructureVars = ComputeVars::create(m_UpdateWorldStructure->getReflector());
+
 	m_Coverage = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RG32Float, 1, 1, nullptr, Resource::BindFlags::UnorderedAccess | Resource::BindFlags::ShaderResource);
 
 	uint32_t initialData[3] = { 0, 1, 1 };
@@ -26,8 +29,11 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 
 	m_NewSurfelCounts = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", WORLD_STRUCTURE_TOTAL_SIZE);
 
+	m_WorldStructure = StructuredBuffer::create(m_UpdateWorldStructure, "gWorldStructure", WORLD_STRUCTURE_TOTAL_SIZE);
+
 	m_ComputeState = ComputeState::create();
 	m_CommonData = ParameterBlock::create(m_SurfelCoverage->getReflector()->getParameterBlock("Data"), true);
+	m_CommonData->setStructuredBuffer("Surfels.WorldStructure", m_WorldStructure);
 
 	m_SurfelCoverageVars["GlobalState"]["globalSpawnChance"] = m_SpawnChance;
 	m_SurfelCoverageVars->setStructuredBuffer("gSurfelSpawnCoords", m_SurfelSpawnCoords);
@@ -40,12 +46,17 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_SpawnSurfelVars->setParameterBlock("Data", m_CommonData);
 	m_VisualizeSurfelsVars->setParameterBlock("Data", m_CommonData);
 
+	m_ScannedNewSurfelCounts = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", WORLD_STRUCTURE_TOTAL_SIZE);
+
+	m_UpdateWorldStructureVars->setStructuredBuffer("gWorldStructure", m_WorldStructure);
+	m_UpdateWorldStructureVars->setStructuredBuffer("gNewSurfelsCount", m_NewSurfelCounts);
+	m_UpdateWorldStructureVars->setStructuredBuffer("gScannedNewSurfelsCount", m_ScannedNewSurfelCounts);
+
 	// Exclusive Scan
 	m_ScanBlocks = ComputeProgram::createFromFile("ExclusiveScan.slang", "ExclusiveScanInBlocks");
 	m_ScanSumOfBlocks = ComputeProgram::createFromFile("ExclusiveScan.slang", "ExclusiveScanSumsOfBlocks");
 	m_AddSumToBlocks = ComputeProgram::createFromFile("ExclusiveScan.slang", "AddSumsToBlocks");
 	m_ScanVars = ComputeVars::create(m_AddSumToBlocks->getReflector());
-	m_ScannedNewSurfelCounts = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", WORLD_STRUCTURE_TOTAL_SIZE);
 	assert(WORLD_STRUCTURE_TOTAL_SIZE <= (1024 * 1024));
 	m_ScanAuxiliaryBuffer[0] = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", 1024);
 	m_ScanAuxiliaryBuffer[1] = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", 1024);
@@ -104,6 +115,13 @@ void GlobalIllumination::ResetGI()
 	uint32_t count = 0;
 	m_SurfelCount->setBlob(&count, 0, sizeof(uint32_t));
 	m_CommonData->setStructuredBuffer("Surfels.Count", m_SurfelCount);
+
+	m_SurfelIndices[0] = StructuredBuffer::create(m_UpdateWorldStructure, "gNewSurfelIndices", m_MaxSurfels);
+	m_SurfelIndices[1] = StructuredBuffer::create(m_UpdateWorldStructure, "gNewSurfelIndices", m_MaxSurfels);
+
+	std::vector<WorldStructureChunk> tempData(WORLD_STRUCTURE_TOTAL_SIZE);
+	memset(tempData.data(), 0, tempData.size() * sizeof(WorldStructureChunk));
+	m_WorldStructure->updateData(tempData.data(), 0, tempData.size() * sizeof(WorldStructureChunk));
 }
 
 Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, double currentTime, const Camera* pCamera, const Texture::SharedPtr& pDepthTexture, const Texture::SharedPtr& pNormalTexture)
@@ -114,6 +132,8 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, do
 	pCamera->setIntoConstantBuffer(
 		m_CommonData->getDefaultConstantBuffer().get(),
 		"Camera");
+
+	m_CommonData->setStructuredBuffer("Surfels.Indices", m_SurfelIndices[m_CurrentSurfelIndicesBuffer]);
 
 	// Reset counter
 	uint32_t zero = 0;
@@ -134,14 +154,24 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, do
 	pContext->dispatch(m_Coverage->getWidth() / 16, m_Coverage->getHeight() / 16, 1);
 
 	pContext->popComputeVars();
-	pContext->popComputeState();
 
 	pContext->copyBufferRegion(m_NewSurfelCountBuffer.get(), 0, m_SurfelSpawnCoords->getUAVCounter().get(), 0, sizeof(uint32_t));
 
 	ExclusiveScan(pContext);
 
+	m_UpdateWorldStructureVars->setStructuredBuffer("gOldSurfelIndices", m_SurfelIndices[m_CurrentSurfelIndicesBuffer]);
+	m_UpdateWorldStructureVars->setStructuredBuffer("gNewSurfelIndices", m_SurfelIndices[(m_CurrentSurfelIndicesBuffer + 1) % 2]);
+	m_CurrentSurfelIndicesBuffer = (m_CurrentSurfelIndicesBuffer + 1) % 2;
+	m_ComputeState->setProgram(m_UpdateWorldStructure);
+	pContext->pushComputeVars(m_UpdateWorldStructureVars);
+
+	pContext->dispatch(WORLD_STRUCTURE_DIMENSION, WORLD_STRUCTURE_DIMENSION, WORLD_STRUCTURE_DIMENSION);
+
+	pContext->popComputeVars();
+
+	m_CommonData->setStructuredBuffer("Surfels.Indices", m_SurfelIndices[m_CurrentSurfelIndicesBuffer]);
+
 	m_ComputeState->setProgram(m_SpawnSurfel);
-	pContext->pushComputeState(m_ComputeState);
 	pContext->pushComputeVars(m_SpawnSurfelVars);
 
 	pContext->dispatchIndirect(m_NewSurfelCountBuffer.get(), 0);

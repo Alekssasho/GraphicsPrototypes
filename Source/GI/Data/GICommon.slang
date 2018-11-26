@@ -12,6 +12,8 @@ struct SurfelsData
 {
 	RWStructuredBuffer<Surfel> Storage;
 	RWStructuredBuffer<uint> Count;
+    StructuredBuffer<WorldStructureChunk> WorldStructure;
+    StructuredBuffer<uint> Indices;
 };
 
 struct CommonData
@@ -43,6 +45,13 @@ float3 GetNormal(uint2 loc)
     return normalize(normal * 2.0f - 1.0f);
 }
 
+uint FlattenWorldIndex(uint3 index)
+{
+    return index.x
+         + index.y * WORLD_STRUCTURE_DIMENSION
+         + index.z * (WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION);
+}
+
 uint GetWorldStructureIndex(float3 pos)
 {
     // Translate with world structure center offset
@@ -50,8 +59,5 @@ uint GetWorldStructureIndex(float3 pos)
     pos = clamp(pos, 0.0f, WORLD_DIMENSION);
 
     uint3 worldStructure3DIndex = floor((pos / WORLD_DIMENSION) * WORLD_STRUCTURE_DIMENSION);
-    return worldStructure3DIndex.x
-         + worldStructure3DIndex.y * WORLD_STRUCTURE_DIMENSION
-         + worldStructure3DIndex.z * (WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION);
-
+    return FlattenWorldIndex(worldStructure3DIndex);
 }

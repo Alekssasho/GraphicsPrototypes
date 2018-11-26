@@ -10,10 +10,16 @@ struct Surfel
 	float3 Color    DEFAULTS(float3(0.0f, 0.0f, 0.0f));
 };
 
+struct WorldStructureChunk
+{
+	uint StartIndex;
+	uint Count;
+};
+
 static const float SurfelRadius = 0.125f;
 static const float SurfelRadiusSquared = SurfelRadius * SurfelRadius;
 
-static const uint WORLD_STRUCTURE_DIMENSION = 64;
+static const uint WORLD_STRUCTURE_DIMENSION = 32;
 static const float WORLD_DIMENSION = 6.0f;
 static const float WORLD_STRUCTURE_CHUNK_SIZE = (WORLD_DIMENSION / WORLD_STRUCTURE_DIMENSION);
 

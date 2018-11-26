@@ -38,6 +38,8 @@ private:
 	// Surfels Placement
 	ComputeProgram::SharedPtr m_SurfelCoverage;
 	ComputeVars::SharedPtr m_SurfelCoverageVars;
+	ComputeProgram::SharedPtr m_UpdateWorldStructure;
+	ComputeVars::SharedPtr m_UpdateWorldStructureVars;
 	ComputeProgram::SharedPtr m_SpawnSurfel;
 	ComputeVars::SharedPtr m_SpawnSurfelVars;
 	float m_SpawnChance = 1.0f;
@@ -48,6 +50,9 @@ private:
 	StructuredBuffer::SharedPtr m_SurfelSpawnCoords;
 	StructuredBuffer::SharedPtr m_NewSurfelCounts;
 	Buffer::SharedPtr m_NewSurfelCountBuffer;
+	StructuredBuffer::SharedPtr m_WorldStructure;
+	StructuredBuffer::SharedPtr m_SurfelIndices[2];
+	uint32_t m_CurrentSurfelIndicesBuffer = 0;
 
 	// Exclusive Scan implementation
 	StructuredBuffer::SharedPtr m_ScannedNewSurfelCounts;
