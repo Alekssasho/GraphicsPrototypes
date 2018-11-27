@@ -72,11 +72,13 @@ void main(uint3 tid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
     float3 posW = GetWorldPosition(tid.xy);
     float3 normal = GetNormal(tid.xy);
 
-	// TODO: use acceleration structure
+    uint worldIndex = GetWorldStructureIndex(posW);
+    uint startIndex = Data.Surfels.WorldStructure[worldIndex].StartIndex;
     float coverage = 0.0f;
-    for (uint i = 0; i < Data.Surfels.Count[0]; ++i)
+    for (uint i = 0; i < Data.Surfels.WorldStructure[worldIndex].Count; ++i)
     {
-        coverage += computeCoverage(posW, normal, Data.Surfels.Storage[i]);
+        uint surfelIndex = Data.Surfels.Indices[startIndex + i];
+        coverage += computeCoverage(posW, normal, Data.Surfels.Storage[surfelIndex]);
     }
 
     groupCoverage[groupIndex] = coverage;

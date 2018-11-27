@@ -39,6 +39,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_SurfelCoverageVars->setStructuredBuffer("gSurfelSpawnCoords", m_SurfelSpawnCoords);
 	m_SurfelCoverageVars->setStructuredBuffer("gNewSurfelsCount", m_NewSurfelCounts);
 
+	m_SpawnSurfelVars->setStructuredBuffer("gNewSurfelsCount", m_NewSurfelCounts);
 	m_SpawnSurfelVars->setStructuredBuffer("gSurfelSpawnCoords", m_SurfelSpawnCoords);
 	m_SpawnSurfelVars->setRawBuffer("gSurfelCount", m_SurfelSpawnCoords->getUAVCounter());
 
@@ -171,6 +172,7 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, do
 
 	m_CommonData->setStructuredBuffer("Surfels.Indices", m_SurfelIndices[m_CurrentSurfelIndicesBuffer]);
 
+	m_SpawnSurfelVars->setStructuredBuffer("gIndices", m_SurfelIndices[m_CurrentSurfelIndicesBuffer]);
 	m_ComputeState->setProgram(m_SpawnSurfel);
 	pContext->pushComputeVars(m_SpawnSurfelVars);
 

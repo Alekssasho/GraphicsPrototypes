@@ -2,6 +2,8 @@ import GICommon;
 import Random;
 
 StructuredBuffer<uint2> gSurfelSpawnCoords;
+RWStructuredBuffer<uint> gIndices;
+RWStructuredBuffer<uint> gNewSurfelsCount;
 Buffer<uint> gSurfelCount;
 
 [numthreads(1, 1, 1)]
@@ -32,5 +34,10 @@ void main(uint3 tid : SV_DispatchThreadID)
     surfel.Color.b = RandomFloat(seedState);
 
     Data.Surfels.Storage[currentCount + tid.x] = surfel;
+
+    uint index = GetWorldStructureIndex(surfel.Position);
+    uint oldValue;
+    InterlockedAdd(gNewSurfelsCount[index], -1, oldValue);
+    gIndices[Data.Surfels.WorldStructure[index].StartIndex + oldValue - 1] = currentCount + tid.x;
 }
 
