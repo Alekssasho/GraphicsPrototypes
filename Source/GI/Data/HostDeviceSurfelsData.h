@@ -16,13 +16,12 @@ struct WorldStructureChunk
 	uint Count;
 };
 
-static const float SurfelRadius = 0.125f;
-static const float SurfelRadiusSquared = SurfelRadius * SurfelRadius;
-
 static const uint WORLD_STRUCTURE_DIMENSION = 32;
 static const float WORLD_DIMENSION = 6.0f;
 static const float WORLD_STRUCTURE_CHUNK_SIZE = (WORLD_DIMENSION / WORLD_STRUCTURE_DIMENSION);
 
 static const uint WORLD_STRUCTURE_TOTAL_SIZE = WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION;
 
+static const float SurfelRadius = WORLD_STRUCTURE_CHUNK_SIZE / 2.0f;
+static const float SurfelRadiusSquared = SurfelRadius * SurfelRadius;
 #endif

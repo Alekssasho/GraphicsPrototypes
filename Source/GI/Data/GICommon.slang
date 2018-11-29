@@ -52,12 +52,29 @@ uint FlattenWorldIndex(uint3 index)
          + index.z * (WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION);
 }
 
-uint GetWorldStructureIndex(float3 pos)
+uint3 ThreeDWorldIndex(uint index)
+{
+    uint3 res;
+    res.z = index / (WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION);
+    index -= res.z * WORLD_STRUCTURE_DIMENSION * WORLD_STRUCTURE_DIMENSION;
+    res.y = index / WORLD_STRUCTURE_DIMENSION;
+    res.x = index % WORLD_STRUCTURE_DIMENSION;
+    return res;
+}
+
+uint3 GetWorldStructureIndex(float3 pos)
 {
     // Translate with world structure center offset
     pos += float3(WORLD_DIMENSION / 2.0f);
     pos = clamp(pos, 0.0f, WORLD_DIMENSION);
 
     uint3 worldStructure3DIndex = floor((pos / WORLD_DIMENSION) * WORLD_STRUCTURE_DIMENSION);
-    return FlattenWorldIndex(worldStructure3DIndex);
+    return worldStructure3DIndex;
+}
+
+float3 GetChunkCenter(uint3 index)
+{
+    float3 result = index * WORLD_STRUCTURE_CHUNK_SIZE + float3(WORLD_STRUCTURE_CHUNK_SIZE / 2.0f);
+	// Translate with world structure origin
+    return result - float3(WORLD_DIMENSION / 2.0f);
 }

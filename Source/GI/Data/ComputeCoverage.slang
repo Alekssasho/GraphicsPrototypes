@@ -72,7 +72,7 @@ void main(uint3 tid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
     float3 posW = GetWorldPosition(tid.xy);
     float3 normal = GetNormal(tid.xy);
 
-    uint worldIndex = GetWorldStructureIndex(posW);
+    uint worldIndex = FlattenWorldIndex(GetWorldStructureIndex(posW));
     uint startIndex = Data.Surfels.WorldStructure[worldIndex].StartIndex;
     float coverage = 0.0f;
     for (uint i = 0; i < Data.Surfels.WorldStructure[worldIndex].Count; ++i)
@@ -115,10 +115,91 @@ void main(uint3 tid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 		gCoverage[groupScreenPos[0]] = float2(groupCoverage[0], pixArea);
         if (chance * pixArea > globalSpawnChance)
         {
-            uint index = GetWorldStructureIndex(GetWorldPosition(groupScreenPos[0]));
+            const float3 pos = GetWorldPosition(groupScreenPos[0]);
+            uint3 index = GetWorldStructureIndex(pos);
             uint ind;
-            InterlockedAdd(gNewSurfelsCount[index], 1, ind);
             gSurfelSpawnCoords.Append(groupScreenPos[0]);
+            InterlockedAdd(gNewSurfelsCount[FlattenWorldIndex(index)], 1, ind);
+
+            // Check surrounding chunks
+            const float3 chunkCenter = GetChunkCenter(index);
+            const float3 posInChunk = pos - chunkCenter;
+            const float d = WORLD_STRUCTURE_CHUNK_SIZE / 2.0f;
+            // first 8 check for diagonal cornered chunks
+            // We need to check the center chunk corners
+            float3 corners[8] =
+            {
+                float3( 1,  1,  1),
+                float3( 1,  1, -1),
+                float3( 1, -1, -1),
+                float3( 1, -1,  1),
+                float3(-1, -1,  1),
+                float3(-1, -1, -1),
+                float3(-1,  1, -1),
+                float3(-1,  1,  1)
+            };
+            [unroll]
+            for (int i = 0; i < 8; ++i)
+            {
+                float3 v = corners[i] * d - posInChunk;
+                if (dot(v, v) < SurfelRadiusSquared)
+                {
+                    InterlockedAdd(gNewSurfelsCount[FlattenWorldIndex(index + corners[i])], 1, ind);
+                }
+            }
+
+            // Check 6 planes of the cube for intersection
+            [unroll]
+            for (int i = 0; i < 3; ++i)
+            {
+                float v = d - posInChunk[i];
+                uint3 checkedChunkIndex = uint3(0, 0, 0);
+                checkedChunkIndex[i] = 1;
+                if (v < SurfelRadius)
+                {
+                    InterlockedAdd(gNewSurfelsCount[FlattenWorldIndex(index + checkedChunkIndex)], 1, ind);
+                }
+
+
+                v = -d - posInChunk[i];
+                checkedChunkIndex[i] = -1;
+                if (v < SurfelRadius)
+                {
+                    InterlockedAdd(gNewSurfelsCount[FlattenWorldIndex(index + checkedChunkIndex)], 1, ind);
+                }
+            }
+
+            // Toghether with 12 edges of the cubes
+            float3 edges[12] =
+            {
+                    float3( 0,  1,  1),
+                    float3( 0,  1, -1),
+                    float3( 0, -1, -1),
+                    float3( 0, -1,  1),
+                    float3( 1,  0,  1),
+                    float3( 1,  0, -1),
+                    float3(-1,  0, -1),
+                    float3(-1,  0,  1),
+                    float3( 1,  1,  0),
+                    float3( 1, -1,  0),
+                    float3(-1, -1,  0),
+                    float3(-1,  1,  0)
+            };
+            [unroll]
+            for (int i = 0; i < 3; ++i)
+            {
+                float3 relevantPos = posInChunk;
+                relevantPos[i] = 0;
+                [unroll]
+                for (int j = 0; j < 4; ++j)
+                {
+                    float3 v = edges[i * 4 + j] * d - relevantPos;
+                    if (dot(v, v) < SurfelRadiusSquared)
+                    {
+                        InterlockedAdd(gNewSurfelsCount[FlattenWorldIndex(index + edges[i * 4 + j])], 1, ind);
+                    }
+                }
+            }
         }
     }
 }

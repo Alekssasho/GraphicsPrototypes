@@ -7,7 +7,7 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET0
     float3 posW = GetWorldPosition(pos.xy);
     float3 normal = GetNormal(pos.xy);
 
-    uint worldIndex = GetWorldStructureIndex(posW);
+    uint worldIndex = FlattenWorldIndex(GetWorldStructureIndex(posW));
     uint startIndex = Data.Surfels.WorldStructure[worldIndex].StartIndex;
     for (uint i = 0; i < Data.Surfels.WorldStructure[worldIndex].Count; ++i)
     {
