@@ -70,20 +70,6 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 {
 	if(pGui->beginGroup("GI"))
 	{
-		// Statistics
-		auto totalSurfelsSize = sizeof(Surfel) * m_MaxSurfels;
-		std::string totalSurfelsSizeInMB = "Surfel Data: " + std::to_string(float(totalSurfelsSize) / (1024 * 1024)) + " MB";
-		pGui->addText(totalSurfelsSizeInMB.c_str());
-
-		if (pGui->addIntVar("Max Surfels", m_MaxSurfels, 0))
-		{
-			ResetGI();
-		}
-
-		uint32_t count;
-		m_SurfelCount->getVariable(0, 0, count);
-		pGui->addText((std::string("Surfel Count: ") + std::to_string(count)).c_str());
-
 		if (pGui->addFloatVar("Spawn Chance", m_SpawnChance, 0.0f, 1.0f))
 		{
 			m_SurfelCoverageVars["GlobalState"]["globalSpawnChance"] = m_SpawnChance;
@@ -93,7 +79,23 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 
 		pGui->addCheckBox("Visualize Surfels", m_VisualizeSurfels);
 
-		m_Surfels->renderUI(pGui, "Surfels Data");
+		if (pGui->beginGroup("Statistics"))
+		{
+			auto totalSurfelsSize = sizeof(Surfel) * m_MaxSurfels;
+			std::string totalSurfelsSizeInMB = "Surfel Data: " + std::to_string(float(totalSurfelsSize) / (1024 * 1024)) + " MB";
+			pGui->addText(totalSurfelsSizeInMB.c_str());
+
+			if (pGui->addIntVar("Max Surfels", m_MaxSurfels, 0))
+			{
+				ResetGI();
+			}
+
+			uint32_t count;
+			m_SurfelCount->getVariable(0, 0, count);
+			pGui->addText((std::string("Surfel Count: ") + std::to_string(count)).c_str());
+			m_Surfels->renderUI(pGui, "Surfels Data");
+			pGui->endGroup();
+		}
 
 		if (pGui->addButton("Reset GI"))
 		{
