@@ -1,30 +1,3 @@
-/***************************************************************************
-# Copyright (c) 2015, NVIDIA CORPORATION. All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#  * Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-#  * Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-#  * Neither the name of NVIDIA CORPORATION nor the names of its
-#    contributors may be used to endorse or promote products derived
-#    from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
-# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-# OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************************************************************************/
 #include "DeferredRenderer.h"
 
 #include "pix3.h"
@@ -133,10 +106,9 @@ void DeferredRenderer::applyCustomSceneVars(const Scene* pScene, const std::stri
 {
 	std::string folder = getDirectoryFromFile(filename);
 
-	Scene::UserVariable var = pScene->getUserVariable("sky_box");
-	if (var.type == Scene::UserVariable::Type::String) initSkyBox(folder + '/' + var.str);
+	if (pScene->getEnvironmentMap()) initSkyBox(pScene->getEnvironmentMap());
 
-	var = pScene->getUserVariable("opacity_scale");
+	auto var = pScene->getUserVariable("opacity_scale");
 	if (var.type == Scene::UserVariable::Type::Double) mOpacityScale = (float)var.d64;
 }
 
@@ -247,12 +219,12 @@ void DeferredRenderer::loadScene(SampleCallbacks* pSample, const std::string& fi
 	}
 }
 
-void DeferredRenderer::initSkyBox(const std::string& name)
+void DeferredRenderer::initSkyBox(const Texture::SharedPtr& texture)
 {
 	Sampler::Desc samplerDesc;
 	samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
 	mSkyBox.pSampler = Sampler::create(samplerDesc);
-	mSkyBox.pEffect = SkyBox::create(name, true, mSkyBox.pSampler);
+	mSkyBox.pEffect = SkyBox::create(texture, mSkyBox.pSampler);
 	DepthStencilState::Desc dsDesc;
 	dsDesc.setDepthFunc(DepthStencilState::Func::Always);
 	mSkyBox.pDS = DepthStencilState::create(dsDesc);
@@ -289,7 +261,7 @@ void DeferredRenderer::initPostProcess()
 	mpToneMapper = ToneMapping::create(ToneMapping::Operator::Clamp);
 }
 
-void DeferredRenderer::onLoad(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext)
+void DeferredRenderer::onLoad(SampleCallbacks* pSample, RenderContext* pRenderContext)
 {
 	mpState = GraphicsState::create();
 	initPostProcess();
@@ -301,7 +273,7 @@ void DeferredRenderer::renderSkyBox(RenderContext* pContext)
 	if (mSkyBox.pEffect)
 	{
 		MarkerScope scope(pContext, "Sky box");
-		PROFILE(skyBox);
+		PROFILE("skyBox");
 		mpState->setDepthStencilState(mSkyBox.pDS);
 		mSkyBox.pEffect->render(pContext, mpSceneRenderer->getScene()->getActiveCamera().get());
 		mpState->setDepthStencilState(nullptr);
@@ -329,7 +301,7 @@ void DeferredRenderer::endFrame(RenderContext* pContext)
 
 void DeferredRenderer::postProcess(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
 {
-	PROFILE(postProcess);    
+	PROFILE("postProcess");
 	MarkerScope scope(pContext, "Post Process");
 	mpToneMapper->execute(pContext, mpMainFbo->getColorTexture(0), pTargetFbo);
 }
@@ -337,7 +309,7 @@ void DeferredRenderer::postProcess(RenderContext* pContext, Fbo::SharedPtr pTarg
 void DeferredRenderer::depthPass(RenderContext* pContext)
 {
 	MarkerScope scope(pContext, "Depth Pass");
-	PROFILE(depthPass);
+	PROFILE("depthPass");
 	if (mEnableDepthPass == false) 
 	{
 		return;
@@ -355,7 +327,7 @@ void DeferredRenderer::depthPass(RenderContext* pContext)
 void DeferredRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 {
 	MarkerScope scope(pContext, "Ligthing pass");
-	PROFILE(lightingPass);
+	PROFILE("lightingPass");
 
 	mLightingPass.pGBufferBlock->setTexture("Texture0", mpGBufferFbo->getColorTexture(0));
 	mLightingPass.pGBufferBlock->setTexture("Texture1", mpGBufferFbo->getColorTexture(1));
@@ -392,7 +364,7 @@ void DeferredRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 void DeferredRenderer::gBufferPass(RenderContext* pContext, Fbo* pTargetFbo)
 {
 	MarkerScope scope(pContext, "G-Buffer pass");
-	PROFILE(gBufferPass);
+	PROFILE("gBufferPass");
 	mpState->setProgram(mGBufferPass.pProgram);
 	mpState->setDepthStencilState(mEnableDepthPass ? mGBufferPass.pDsState : nullptr);
 	pContext->setGraphicsVars(mGBufferPass.pVars);
@@ -444,7 +416,7 @@ void DeferredRenderer::renderTransparentObjects(RenderContext* pContext)
 void DeferredRenderer::shadowPass(RenderContext* pContext)
 {
 	MarkerScope scope(pContext, "Shadow Map Pass");
-	PROFILE(shadowPass);
+	PROFILE("shadowPass");
 	if (mControls[EnableShadows].enabled && mShadowPass.updateShadowMap)
 	{
 		mShadowPass.camVpAtLastCsmUpdate = mpSceneRenderer->getScene()->getActiveCamera()->getViewProjMatrix();
@@ -459,7 +431,7 @@ void DeferredRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 	if(mAAMode == AAMode::TAA)
 	{
 		MarkerScope scope(pContext, "TAA");
-		PROFILE(runTAA);
+		PROFILE("runTAA");
 		//  Get the Current Color and Motion Vectors
 		const Texture::SharedPtr pCurColor = pColorFbo->getColorTexture(0);
 		const Texture::SharedPtr pMotionVec = mpGBufferFbo->getColorTexture(3);
@@ -482,7 +454,7 @@ void DeferredRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 
 void DeferredRenderer::runGI(RenderContext* pContext, double currentTime)
 {
-	PROFILE(gi);
+	PROFILE("gi");
 	MarkerScope scope(pContext, "GI");
 	mSSAO.pVars->setTexture("gGIMap",
 		mGI.GenerateGIMap(
@@ -509,7 +481,7 @@ void DeferredRenderer::ambientOcclusion(RenderContext* pContext)
 {
 	if (mControls[EnableSSAO].enabled)
 	{
-		PROFILE(ssao);
+		PROFILE("ssao");
 		MarkerScope scope(pContext, "SSAO");
 		mSSAO.pVars->setTexture("gAOMap",
 			mSSAO.pSSAO->generateAOMap(
@@ -523,7 +495,7 @@ void DeferredRenderer::ambientOcclusion(RenderContext* pContext)
 
 void DeferredRenderer::executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
 {
-	PROFILE(fxaa);
+	PROFILE("fxaa");
 	if(mAAMode == AAMode::FXAA)
 	{
 		MarkerScope scope(pContext, "FXAA");
@@ -532,7 +504,7 @@ void DeferredRenderer::executeFXAA(RenderContext* pContext, Fbo::SharedPtr pTarg
 	}
 }
 
-void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, const RenderContext::SharedPtr& pRenderContext, const Fbo::SharedPtr& pTargetFbo)
+void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
 	if (mCaptureNextFrame)
 	{
@@ -543,21 +515,21 @@ void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, const RenderConte
 	{
 		Program::reloadAllPrograms();
 
-		MarkerScope scope(pRenderContext.get(), "Frame");
-		beginFrame(pRenderContext.get(), pTargetFbo.get(), pSample->getFrameID());
+		MarkerScope scope(pRenderContext, "Frame");
+		beginFrame(pRenderContext, pTargetFbo.get(), pSample->getFrameID());
 		{
-			PROFILE(updateScene);
+			PROFILE("updateScene");
 			mpSceneRenderer->update(pSample->getCurrentTime());
 		}
 
-		depthPass(pRenderContext.get());
-		shadowPass(pRenderContext.get());
+		depthPass(pRenderContext);
+		shadowPass(pRenderContext);
 		mpState->setFbo(mpGBufferFbo);
-		gBufferPass(pRenderContext.get(), pTargetFbo.get());
+		gBufferPass(pRenderContext, pTargetFbo.get());
 
 		mpState->setFbo(mpMainFbo);
-		lightingPass(pRenderContext.get(), pTargetFbo.get());
-		renderSkyBox(pRenderContext.get());
+		lightingPass(pRenderContext, pTargetFbo.get());
+		renderSkyBox(pRenderContext);
 
 		if (mGBufferDebugMode != GBufferDebugMode::None)
 		{
@@ -567,7 +539,7 @@ void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, const RenderConte
 			return;
 		}
 
-		runGI(pRenderContext.get(), pSample->getCurrentTime());
+		runGI(pRenderContext, pSample->getCurrentTime());
 
 		if (mControls[ControlID::VisualizeSurfelCoverage].enabled)
 		{
@@ -578,13 +550,13 @@ void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, const RenderConte
 		}
 
 		Fbo::SharedPtr pPostProcessDst = mControls[EnableSSAO].enabled ? mpPostProcessFbo : pTargetFbo;
-		postProcess(pRenderContext.get(), pPostProcessDst);
-		runTAA(pRenderContext.get(), pPostProcessDst); // This will only run if we are in TAA mode
-		ambientOcclusion(pRenderContext.get());
-		applyAOGI(pRenderContext.get(), pTargetFbo);
-		executeFXAA(pRenderContext.get(), pTargetFbo);
+		postProcess(pRenderContext, pPostProcessDst);
+		runTAA(pRenderContext, pPostProcessDst); // This will only run if we are in TAA mode
+		ambientOcclusion(pRenderContext);
+		applyAOGI(pRenderContext, pTargetFbo);
+		executeFXAA(pRenderContext, pTargetFbo);
 
-		endFrame(pRenderContext.get());
+		endFrame(pRenderContext);
 	}
 	else
 	{
@@ -683,13 +655,13 @@ void DeferredRenderer::setActiveCameraAspectRatio(uint32_t w, uint32_t h)
 	mpSceneRenderer->getScene()->getActiveCamera()->setAspectRatio((float)w / (float)h);
 }
 
-void DeferredRenderer::StartRenderDocCapture(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+void DeferredRenderer::StartRenderDocCapture(SampleCallbacks* pSample, RenderContext* pRenderContext)
 {
 	pRenderContext->flush(true);
 	mpRenderDocAPI->StartFrameCapture((ID3D12Device*)gpDevice->getApiHandle(), (HWND)pSample->getWindow()->getApiHandle());
 }
 
-void DeferredRenderer::EndRenderDocCapture(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+void DeferredRenderer::EndRenderDocCapture(SampleCallbacks* pSample, RenderContext* pRenderContext)
 {
 	pRenderContext->flush(true);
 	mpRenderDocAPI->EndFrameCapture((ID3D12Device*)gpDevice->getApiHandle(), (HWND)pSample->getWindow()->getApiHandle());
@@ -753,11 +725,10 @@ int main(int argc, char** argv)
 	DeferredRenderer::UniquePtr pRenderer = std::make_unique<DeferredRenderer>(args.argExists("renderdoc"));
 
 	SampleConfig config;
-	config.windowDesc.title = "Falcor Forward Renderer";
+	config.windowDesc.title = "Falcor Deferred Renderer";
 	config.windowDesc.resizableWindow = false;
 	config.windowDesc.width = 1280;
 	config.windowDesc.height = 720;
-	config.deviceDesc.apiMajorVersion = 11;
 #ifdef _WIN32
 	Sample::run(config, pRenderer);
 #else
