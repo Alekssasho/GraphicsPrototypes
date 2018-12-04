@@ -1,5 +1,4 @@
 import GICommon;
-import Random;
 
 StructuredBuffer<uint2> gSurfelSpawnCoords;
 RWStructuredBuffer<uint> gIndices;
@@ -20,15 +19,11 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     uint2 screenPos = gSurfelSpawnCoords[tid.x];
 
-    uint seedState = RandomSeed(tid.x + currentCount * 16000);
-
     // Create new Surfel
     Surfel surfel;
     surfel.Position = GetWorldPosition(screenPos);
     surfel.Normal = GetNormal(screenPos);
-    surfel.Color.r = RandomFloat(seedState);
-    surfel.Color.g = RandomFloat(seedState);
-    surfel.Color.b = RandomFloat(seedState);
+    surfel.Color = GetAlbedo(screenPos);
 
     Data.Surfels.Storage[currentCount + tid.x] = surfel;
 

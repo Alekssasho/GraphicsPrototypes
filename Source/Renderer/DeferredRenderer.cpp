@@ -462,7 +462,8 @@ void DeferredRenderer::runGI(RenderContext* pContext, double currentTime)
 			currentTime,
 			mpSceneRenderer->getScene()->getActiveCamera().get(),
 			mpGBufferFbo->getDepthStencilTexture(),
-			mpGBufferFbo->getColorTexture(2))
+			mpGBufferFbo->getColorTexture(2),
+			mpGBufferFbo->getColorTexture(0))
 	);
 }
 

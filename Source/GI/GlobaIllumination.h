@@ -10,7 +10,12 @@ public:
 	void Initilize(const uvec2& giMapSize);
 	void RenderUI(Gui* pGui);
 
-	Texture::SharedPtr GenerateGIMap(RenderContext* pContext, double currentTime, const Camera* pCamera, const Texture::SharedPtr& pDepthTexture, const Texture::SharedPtr& pNormalTexture);
+	Texture::SharedPtr GenerateGIMap(RenderContext* pContext,
+		double currentTime,
+		const Camera* pCamera,
+		const Texture::SharedPtr& pDepthTexture,
+		const Texture::SharedPtr& pNormalTexture,
+		const Texture::SharedPtr& pAlbedoTexture);
 
 	Texture::SharedPtr GetSurfelCoverageTexture() { return m_Coverage; }
 private:
@@ -24,11 +29,11 @@ private:
 	int32_t m_MaxSurfels;
 
 	// Outputs
-	Fbo::SharedPtr m_GIFbo;
+	Texture::SharedPtr m_GIMap;
 
 	// Debug Visualization
-	FullScreenPass::UniquePtr m_VisualizeSurfelsProgram;
-	GraphicsVars::SharedPtr m_VisualizeSurfelsVars;
+	ComputeProgram::SharedPtr m_SurfelRendering;
+	ComputeVars::SharedPtr m_SurfelRenderingVars;
 	bool m_VisualizeSurfels = false;
 
 	// Utility objects

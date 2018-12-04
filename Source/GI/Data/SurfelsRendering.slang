@@ -1,11 +1,15 @@
 import GICommon;
+import Random;
 
-float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET0
+RWTexture2D<float4> gGIMap;
+
+[numthreads(8, 8, 1)]
+void main(uint3 tid : SV_DispatchThreadID) : SV_TARGET0
 {
     float4 color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-    float3 posW = GetWorldPosition(pos.xy);
-    float3 normal = GetNormal(pos.xy);
+    float3 posW = GetWorldPosition(tid.xy);
+    float3 normal = GetNormal(tid.xy);
 
     uint worldIndex = FlattenWorldIndex(GetWorldStructureIndex(posW));
     uint startIndex = Data.Surfels.WorldStructure[worldIndex].StartIndex;
@@ -15,14 +19,22 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET0
         float3 distanceVec = posW - Data.Surfels.Storage[surfelIndex].Position;
         if ((SurfelRadius * SurfelRadius) >= dot(distanceVec, distanceVec))
         {
+#ifndef VISUALIZE
+
+#else
             // Check normals direction
             if (dot(normal, Data.Surfels.Storage[surfelIndex].Normal) > 0)
             {
-                color = float4(Data.Surfels.Storage[surfelIndex].Color, 1.0f);
+                uint seedState = RandomSeed(surfelIndex);
+                color.r = RandomFloat(seedState);
+                color.g = RandomFloat(seedState);
+                color.b = RandomFloat(seedState);
+                color.a = 1.0f;
                 break;
             }
+#endif
         }
     }
 
-    return color;
+    gGIMap[tid.xy] = color;
 }

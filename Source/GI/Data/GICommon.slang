@@ -6,6 +6,7 @@ struct GBufferTextures
 {
 	Texture2D Normal;
 	Texture2D Depth;
+    Texture2D Albedo;
 };
 
 struct SurfelsData
@@ -43,6 +44,11 @@ float3 GetNormal(uint2 loc)
 {
     float3 normal = Data.GBuffer.Normal[loc].xyz;
     return normalize(normal * 2.0f - 1.0f);
+}
+
+float3 GetAlbedo(uint2 loc)
+{
+    return Data.GBuffer.Albedo[loc].xyz;
 }
 
 uint FlattenWorldIndex(uint3 index)

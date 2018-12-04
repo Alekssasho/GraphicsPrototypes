@@ -4,12 +4,10 @@
 
 void GlobalIllumination::Initilize(const uvec2& giMapSize)
 {
-	Fbo::Desc fboDesc;
-	fboDesc.setColorTarget(0, Falcor::ResourceFormat::RGBA8Unorm);
-	m_GIFbo = FboHelper::create2D(giMapSize.x, giMapSize.y, fboDesc);
+	m_GIMap = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RGBA8Unorm, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
 
-	m_VisualizeSurfelsProgram = FullScreenPass::create("VisualizeSurfels.slang");
-	m_VisualizeSurfelsVars = GraphicsVars::create(m_VisualizeSurfelsProgram->getProgram()->getReflector());
+	m_SurfelRendering = ComputeProgram::createFromFile("SurfelsRendering.slang", "main");
+	m_SurfelRenderingVars = ComputeVars::create(m_SurfelRendering->getReflector());
 
 	m_SurfelCoverage = ComputeProgram::createFromFile("ComputeCoverage.slang", "main");
 	m_SurfelCoverageVars = ComputeVars::create(m_SurfelCoverage->getReflector());
@@ -35,6 +33,8 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_CommonData = ParameterBlock::create(m_SurfelCoverage->getReflector()->getParameterBlock("Data"), true);
 	m_CommonData->setStructuredBuffer("Surfels.WorldStructure", m_WorldStructure);
 
+	m_SurfelRenderingVars->setTexture("gGIMap", m_GIMap);
+
 	m_SurfelCoverageVars["GlobalState"]["globalSpawnChance"] = m_SpawnChance;
 	m_SurfelCoverageVars->setStructuredBuffer("gSurfelSpawnCoords", m_SurfelSpawnCoords);
 	m_SurfelCoverageVars->setStructuredBuffer("gNewSurfelsCount", m_NewSurfelCounts);
@@ -45,7 +45,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 
 	m_SurfelCoverageVars->setParameterBlock("Data", m_CommonData);
 	m_SpawnSurfelVars->setParameterBlock("Data", m_CommonData);
-	m_VisualizeSurfelsVars->setParameterBlock("Data", m_CommonData);
+	m_SurfelRenderingVars->setParameterBlock("Data", m_CommonData);
 
 	m_ScannedNewSurfelCounts = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", WORLD_STRUCTURE_TOTAL_SIZE);
 
@@ -77,7 +77,17 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 
 		pGui->addCheckBox("Update Time", m_UpdateTime);
 
-		pGui->addCheckBox("Visualize Surfels", m_VisualizeSurfels);
+		if (pGui->addCheckBox("Visualize Surfels", m_VisualizeSurfels))
+		{
+			if (m_VisualizeSurfels)
+			{
+				m_SurfelRendering->addDefine("VISUALIZE");
+			}
+			else
+			{
+				m_SurfelRendering->removeDefine("VISUALIZE");
+			}
+		}
 
 		if (pGui->beginGroup("Statistics"))
 		{
@@ -127,11 +137,17 @@ void GlobalIllumination::ResetGI()
 	m_WorldStructure->updateData(tempData.data(), 0, tempData.size() * sizeof(WorldStructureChunk));
 }
 
-Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, double currentTime, const Camera* pCamera, const Texture::SharedPtr& pDepthTexture, const Texture::SharedPtr& pNormalTexture)
+Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
+	double currentTime,
+	const Camera* pCamera,
+	const Texture::SharedPtr& pDepthTexture,
+	const Texture::SharedPtr& pNormalTexture,
+	const Texture::SharedPtr& pAlbedoTexture)
 {
 	// Prepare common data
 	m_CommonData->setTexture("GBuffer.Normal", pNormalTexture);
 	m_CommonData->setTexture("GBuffer.Depth", pDepthTexture);
+	m_CommonData->setTexture("GBuffer.Albedo", pAlbedoTexture);
 	pCamera->setIntoConstantBuffer(
 		m_CommonData->getDefaultConstantBuffer().get(),
 		"Camera");
@@ -181,22 +197,15 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext, do
 	pContext->dispatchIndirect(m_NewSurfelCountBuffer.get(), 0);
 
 	pContext->popComputeVars();
+
+	m_ComputeState->setProgram(m_SurfelRendering);
+	pContext->pushComputeVars(m_SurfelRenderingVars);
+	pContext->dispatch(m_Coverage->getWidth() / 8, m_Coverage->getHeight() / 8, 1);
+	pContext->popComputeVars();
+
 	pContext->popComputeState();
 
-	if (m_VisualizeSurfels)
-	{
-		pContext->getGraphicsState()->setFbo(m_GIFbo);
-		pContext->pushGraphicsVars(m_VisualizeSurfelsVars);
-		m_VisualizeSurfelsProgram->execute(pContext);
-		pContext->popGraphicsVars();
-	}
-	else
-	{
-		// TODO: Implement
-		pContext->clearFbo(m_GIFbo.get(), vec4(0.0f), 0.0f, 0, FboAttachmentType::Color);
-	}
-
-	return m_GIFbo->getColorTexture(0);
+	return m_GIMap;
 }
 
 void GlobalIllumination::ExclusiveScan(RenderContext* pContext)
