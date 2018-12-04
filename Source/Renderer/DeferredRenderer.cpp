@@ -542,6 +542,14 @@ void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, RenderContext* pR
 
 		runGI(pRenderContext, pSample->getCurrentTime());
 
+		if (mControls[ControlID::VisualizeGI].enabled)
+		{
+			pRenderContext->blit(mSSAO.pVars->getTexture("gGIMap")->getSRV(), pTargetFbo->getRenderTargetView(0));
+
+			// Do not do any post process/ao/aa
+			return;
+		}
+
 		if (mControls[ControlID::VisualizeSurfelCoverage].enabled)
 		{
 			pRenderContext->blit(mGI.GetSurfelCoverageTexture()->getSRV(), pTargetFbo->getRenderTargetView(0));

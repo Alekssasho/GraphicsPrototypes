@@ -174,6 +174,7 @@ private:
 		VisualizeCascades,
 		VisualizeAO,
 		VisualizeSurfelCoverage,
+		VisualizeGI,
 		Count
 	};
 
