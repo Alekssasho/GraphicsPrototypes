@@ -83,5 +83,8 @@
     <None Include="..\..\Source\GI\Data\SurfelsRendering.slang">
       <Filter>GI\Data</Filter>
     </None>
+    <None Include="..\..\Source\GI\Data\SurfelsAccumulate.slang">
+      <Filter>GI\Data</Filter>
+    </None>
   </ItemGroup>
 </Project>

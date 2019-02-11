@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Falcor.h>
+#include <FalcorExperimental.h>
 
 using namespace Falcor;
 
@@ -11,6 +12,7 @@ public:
 	void RenderUI(Gui* pGui);
 
 	Texture::SharedPtr GenerateGIMap(RenderContext* pContext,
+		RtSceneRenderer* pSceneRenderer,
 		double currentTime,
 		const Camera* pCamera,
 		const Texture::SharedPtr& pDepthTexture,
@@ -66,4 +68,11 @@ private:
 	ComputeProgram::SharedPtr m_ScanSumOfBlocks;
 	ComputeProgram::SharedPtr m_AddSumToBlocks;
 	ComputeVars::SharedPtr m_ScanVars;
+
+	// RayTracing
+	RtProgram::SharedPtr m_SurfelAccumulateProgram;
+	RtProgramVars::SharedPtr m_SurfelAccumulateVars;
+	RtState::SharedPtr m_RTState;
+	RtScene::SharedPtr m_CachedScene;
+	int32_t m_SurfelAccumulateRayBudget;
 };

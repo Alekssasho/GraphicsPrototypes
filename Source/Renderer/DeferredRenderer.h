@@ -1,5 +1,6 @@
 #pragma once
 #include "Falcor.h"
+#include "FalcorExperimental.h"
 #include "SampleTest.h"
 #include "DeferredRendererSceneRenderer.h"
 
@@ -142,9 +143,10 @@ private:
 
 	GraphicsState::SharedPtr mpState;
 	DeferredRendererSceneRenderer::SharedPtr mpSceneRenderer;
+	RtSceneRenderer::SharedPtr mpRtSceneRenderer;
 	void loadModel(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar);
 	void loadScene(SampleCallbacks* pSample, const std::string& filename, bool showProgressBar);
-	void initScene(SampleCallbacks* pSample, Scene::SharedPtr pScene);
+	void initScene(SampleCallbacks* pSample, RtScene::SharedPtr pScene);
 	void applyCustomSceneVars(const Scene* pScene, const std::string& filename);
 	void resetScene();
 

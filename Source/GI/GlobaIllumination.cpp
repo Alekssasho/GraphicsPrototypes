@@ -62,7 +62,21 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_ScanAuxiliaryBuffer[0] = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", 1024);
 	m_ScanAuxiliaryBuffer[1] = StructuredBuffer::create(m_SurfelCoverage, "gNewSurfelsCount", 1024);
 
-	m_MaxSurfels = 1024 *1024;
+	// Raytracing
+	RtProgram::Desc rtDesc;
+	rtDesc.addShaderLibrary("SurfelsAccumulate.slang");
+	rtDesc.setRayGen("SurfelRayGeneration");
+	rtDesc.addHitGroup(0, "SurfelClosestHit", "");
+	rtDesc.addMiss(0, "SurfelRayMiss");
+	rtDesc.addHitGroup(1, "", "LightRayAnyHit");
+	rtDesc.addMiss(1, "LightRayMiss");
+	m_SurfelAccumulateProgram = RtProgram::create(rtDesc, sizeof(float4));
+	m_RTState = RtState::create();
+	m_RTState->setProgram(m_SurfelAccumulateProgram);
+	m_RTState->setMaxTraceRecursionDepth(1);
+
+	m_SurfelAccumulateRayBudget = 2048;
+	m_MaxSurfels = 1024 * 1024;
 	ResetGI();
 }
 
@@ -74,6 +88,8 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 		{
 			m_SurfelCoverageVars["GlobalState"]["globalSpawnChance"] = m_SpawnChance;
 		}
+
+		pGui->addIntVar("Ray Budget", m_SurfelAccumulateRayBudget, 0);
 
 		pGui->addCheckBox("Update Time", m_UpdateTime);
 
@@ -138,6 +154,7 @@ void GlobalIllumination::ResetGI()
 }
 
 Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
+	RtSceneRenderer* pSceneRenderer,
 	double currentTime,
 	const Camera* pCamera,
 	const Texture::SharedPtr& pDepthTexture,
@@ -204,6 +221,20 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
 	pContext->popComputeVars();
 
 	pContext->popComputeState();
+
+	// RT Update
+	auto currentScene = std::static_pointer_cast<RtScene>(pSceneRenderer->getScene());
+	if (!m_SurfelAccumulateVars ||
+		m_CachedScene != currentScene)
+	{
+		m_CachedScene = currentScene;
+		m_SurfelAccumulateVars = RtProgramVars::create(m_SurfelAccumulateProgram, m_CachedScene);
+		m_SurfelAccumulateVars->getRayGenVars()->setParameterBlock("Data", m_CommonData);
+		auto loc = m_SurfelAccumulateVars->getRayGenVars()->getReflection()->getDefaultParameterBlock()->getResourceBinding("rtScene");
+		m_SurfelAccumulateVars->getRayGenVars()->getDefaultBlock()->setSrv(loc, 0, m_CachedScene->getTlasSrv(m_SurfelAccumulateVars->getHitProgramsCount()));
+	}
+
+	pSceneRenderer->renderScene(pContext, m_SurfelAccumulateVars, m_RTState, {1024, 1, 1});
 
 	return m_GIMap;
 }

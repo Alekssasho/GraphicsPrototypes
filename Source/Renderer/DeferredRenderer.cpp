@@ -112,7 +112,7 @@ void DeferredRenderer::applyCustomSceneVars(const Scene* pScene, const std::stri
 	if (var.type == Scene::UserVariable::Type::Double) mOpacityScale = (float)var.d64;
 }
 
-void DeferredRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pScene)
+void DeferredRenderer::initScene(SampleCallbacks* pSample, RtScene::SharedPtr pScene)
 {
 	if (pScene->getCameraCount() == 0)
 	{
@@ -171,6 +171,8 @@ void DeferredRenderer::initScene(SampleCallbacks* pSample, Scene::SharedPtr pSce
 	mpSceneRenderer->getScene()->getActiveCamera()->setDepthRange(0.1f, 100.0f);
 
 	mGI.Initilize(uvec2(pTargetFbo->getWidth(), pTargetFbo->getHeight()));
+
+	mpRtSceneRenderer = RtSceneRenderer::create(pScene);
 }
 
 void DeferredRenderer::resetScene()
@@ -190,10 +192,9 @@ void DeferredRenderer::loadModel(SampleCallbacks* pSample, const std::string& fi
 		pBar = ProgressBar::create("Loading Model");
 	}
 
-	Model::SharedPtr pModel = Model::createFromFile(filename.c_str());
+	RtModel::SharedPtr pModel = RtModel::createFromFile(filename.c_str());
 	if (!pModel) return;
-	Scene::SharedPtr pScene = Scene::create();
-	pScene->addModelInstance(pModel, "instance");
+	RtScene::SharedPtr pScene = RtScene::createFromModel(pModel);
 
 	initScene(pSample, pScene);
 }
@@ -209,7 +210,7 @@ void DeferredRenderer::loadScene(SampleCallbacks* pSample, const std::string& fi
 		pBar = ProgressBar::create("Loading Scene", 100);
 	}
 
-	Scene::SharedPtr pScene = Scene::loadFromFile(filename);
+	RtScene::SharedPtr pScene = RtScene::loadFromFile(filename);
 
 	if (pScene != nullptr)
 	{
@@ -459,6 +460,7 @@ void DeferredRenderer::runGI(RenderContext* pContext, double currentTime)
 	mSSAO.pVars->setTexture("gGIMap",
 		mGI.GenerateGIMap(
 			pContext,
+			mpRtSceneRenderer.get(),
 			currentTime,
 			mpSceneRenderer->getScene()->getActiveCamera().get(),
 			mpGBufferFbo->getDepthStencilTexture(),
