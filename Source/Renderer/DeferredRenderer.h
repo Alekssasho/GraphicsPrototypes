@@ -1,7 +1,6 @@
 #pragma once
 #include "Falcor.h"
 #include "FalcorExperimental.h"
-#include "SampleTest.h"
 #include "DeferredRendererSceneRenderer.h"
 
 #include "GI/GlobaIllumination.h"
