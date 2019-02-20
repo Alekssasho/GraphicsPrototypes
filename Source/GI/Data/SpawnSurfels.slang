@@ -23,7 +23,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     Surfel surfel;
     surfel.Position = GetWorldPosition(screenPos);
     surfel.Normal = GetNormal(screenPos);
-    surfel.Color = GetAlbedo(screenPos);
+    surfel.Color = float3(0.0f, 0.0f, 0.0f);
 
     Data.Surfels.Storage[currentCount + tid.x] = surfel;
 

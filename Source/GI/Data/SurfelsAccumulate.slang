@@ -2,6 +2,8 @@ import ShaderCommon;
 import Raytracing;
 import GICommon;
 import Random;
+import Lights;
+import Shading;
 
 struct SurfelRayPayload
 {
@@ -53,6 +55,8 @@ void SurfelRayGeneration()
 	ray.TMin = 0.01;
 	ray.TMax = 100000;
 
+    float3 irradiance = 0.0f;
+
 	SurfelRayPayload surfelRayPayload;
 	TraceRay(rtScene,
 		0,
@@ -63,14 +67,20 @@ void SurfelRayGeneration()
 		ray,
 		surfelRayPayload);
 
-	// TODO: get lights
+	// Explicit light sample
 	uint seedState = RandomSeed(surfelIndex);
 	float choice = RandomFloat(seedState);
 	uint chosenLight = round((gLightsCount - 1) * choice);
 
-	float3 surfelToLight = gLights[chosenLight].posW - ray.Origin;
-	ray.Direction = normalize(surfelToLight);
-	ray.TMax = length(surfelToLight);
+    ShadingData sd = initShadingData();
+    sd.N = Data.Surfels.Storage[surfelIndex].Normal;
+    sd.posW = Data.Surfels.Storage[surfelIndex].Position;
+    sd.V = normalize(Data.Camera.posW - sd.posW);
+
+    LightSample ls = evalLight(gLights[chosenLight], sd);
+
+	ray.Direction = ls.L;
+    ray.TMax = length(ls.posW - ray.Origin);
 
 	LightRayPayload lightRayPayload;
 	TraceRay(rtScene,
@@ -82,5 +92,9 @@ void SurfelRayGeneration()
 		ray,
 		lightRayPayload);
 
-	Data.Surfels.Storage[surfelIndex].Color += surfelRayPayload.Color;
+    irradiance += (!lightRayPayload.Hit * ls.diffuse * ls.NdotL) * float(gLightsCount);
+
+	// Moving exponential average
+	// For now use constant blend factor 1/2
+    Data.Surfels.Storage[surfelIndex].Color = lerp(irradiance, Data.Surfels.Storage[surfelIndex].Color, 0.8f);
 }
