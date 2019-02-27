@@ -84,3 +84,43 @@ float3 GetChunkCenter(uint3 index)
 	// Translate with world structure origin
     return result - float3(WORLD_DIMENSION / 2.0f);
 }
+
+float K(float dist)
+{
+    if (dist > 1)
+        return 0;
+    return (2 * dist * dist * dist) - (3 * dist * dist) + 1;
+}
+
+float dist(float3 pos, float3 surfelCenter, float3 surfelNormal)
+{
+    float3 v = (pos - surfelCenter + (2 * (dot(pos - surfelCenter, surfelNormal)) * surfelNormal));
+    return sqrt(dot(v, v));
+}
+
+float3 GetIrradianceAtPoint(float3 posW, float3 normal)
+{
+    float3 totalIrradiance = { 0.0f, 0.0f, 0.0f };
+
+    float totalWeight = 0.0f;
+
+    uint worldIndex = FlattenWorldIndex(GetWorldStructureIndex(posW));
+    uint startIndex = Data.Surfels.WorldStructure[worldIndex].StartIndex;
+    for (uint i = 0; i < Data.Surfels.WorldStructure[worldIndex].Count; ++i)
+    {
+        uint surfelIndex = Data.Surfels.Indices[startIndex + i];
+        float3 surfelNormal = Data.Surfels.Storage[surfelIndex].Normal;
+        float3 surfelCenter = Data.Surfels.Storage[surfelIndex].Position;
+        float3 surfelIrradiance = Data.Surfels.Storage[surfelIndex].Color;
+
+        float weight = K(dist(posW, surfelCenter, surfelNormal) / SurfelRadius)
+				* pow(max(0, dot(normal, surfelNormal)), 2);
+
+        totalIrradiance += weight * surfelIrradiance;
+        totalWeight += weight;
+    }
+
+    totalIrradiance /= totalWeight;
+
+    return totalIrradiance;
+}

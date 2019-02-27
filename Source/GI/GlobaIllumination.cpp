@@ -75,7 +75,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_RTState->setProgram(m_SurfelAccumulateProgram);
 	m_RTState->setMaxTraceRecursionDepth(1);
 
-	m_SurfelAccumulateRayBudget = 2048;
+	m_SurfelAccumulateRayBudget = 2048 * 4;
 	m_MaxSurfels = 1024 * 1024;
 	ResetGI();
 }
@@ -234,7 +234,12 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
 		m_SurfelAccumulateVars->getRayGenVars()->getDefaultBlock()->setSrv(loc, 0, m_CachedScene->getTlasSrv(m_SurfelAccumulateVars->getHitProgramsCount()));
 	}
 
-	pSceneRenderer->renderScene(pContext, m_SurfelAccumulateVars, m_RTState, {1024, 1, 1});
+	if (m_UpdateTime)
+	{
+		const_cast<GraphicsVars::SharedPtr&>(m_SurfelAccumulateVars->getRayGenVars())["GlobalState"]["globalTime"] = float(currentTime);
+	}
+
+	pSceneRenderer->renderScene(pContext, m_SurfelAccumulateVars, m_RTState, { m_SurfelAccumulateRayBudget, 1, 1});
 
 	return m_GIMap;
 }

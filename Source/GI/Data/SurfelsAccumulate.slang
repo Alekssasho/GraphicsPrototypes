@@ -4,6 +4,13 @@ import GICommon;
 import Random;
 import Lights;
 import Shading;
+import Helpers;
+
+cbuffer GlobalState
+{
+    float globalTime;
+    float globalSpawnChance;
+}
 
 struct SurfelRayPayload
 {
@@ -38,7 +45,12 @@ void LightRayAnyHit(inout LightRayPayload payload, in BuiltInTriangleIntersectio
 [shader("closesthit")]
 void SurfelClosestHit(inout SurfelRayPayload payload, in BuiltInTriangleIntersectionAttributes attribs)
 {
-	payload.Color = float3(0.1f, 0.1f, 0.1f);
+    VertexOut vOut = getVertexAttributes(PrimitiveIndex(), attribs);
+    ShadingData sd = prepareShadingData(vOut, gMaterial, WorldRayOrigin(), 0);
+
+    float3 irradiance = GetIrradianceAtPoint(sd.posW, sd.N);
+
+    payload.Color = max(float3(0.0f), irradiance * sd.diffuse);
 }
 
 [shader("raygeneration")]
@@ -48,9 +60,14 @@ void SurfelRayGeneration()
 
 	uint surfelIndex = index % Data.Surfels.Count[0];
 
+    uint randSeed = rand_init(index, globalTime, 16);
+    float2 randVal = float2(rand_next(randSeed), rand_next(randSeed));
+
 	RayDesc ray;
 	ray.Origin = Data.Surfels.Storage[surfelIndex].Position;
-	ray.Direction = Data.Surfels.Storage[surfelIndex].Normal;
+    ray.Direction = getCosHemisphereSample(randVal,
+		Data.Surfels.Storage[surfelIndex].Normal,
+		getPerpendicularStark(Data.Surfels.Storage[surfelIndex].Normal));
 	// Using lower values than 0.01 is causing artefacts due to inprecision in World Position reconstruction method used
 	ray.TMin = 0.01;
 	ray.TMax = 100000;
@@ -67,8 +84,13 @@ void SurfelRayGeneration()
 		ray,
 		surfelRayPayload);
 
+    irradiance += surfelRayPayload.Color;
+
 	// Explicit light sample
-	uint seedState = RandomSeed(surfelIndex);
+    uint seedState = RandomSeed(uint(
+		Data.Surfels.Storage[surfelIndex].Color.r * 19001
+		+ Data.Surfels.Storage[surfelIndex].Color.g * 13751
+		+ Data.Surfels.Storage[surfelIndex].Color.b * 10093));
 	float choice = RandomFloat(seedState);
 	uint chosenLight = round((gLightsCount - 1) * choice);
 
@@ -95,6 +117,5 @@ void SurfelRayGeneration()
     irradiance += (!lightRayPayload.Hit * ls.diffuse * ls.NdotL) * float(gLightsCount);
 
 	// Moving exponential average
-	// For now use constant blend factor 1/2
-    Data.Surfels.Storage[surfelIndex].Color = lerp(irradiance, Data.Surfels.Storage[surfelIndex].Color, 0.8f);
+    Data.Surfels.Storage[surfelIndex].Color = lerp(irradiance, Data.Surfels.Storage[surfelIndex].Color, 0.99f);
 }
