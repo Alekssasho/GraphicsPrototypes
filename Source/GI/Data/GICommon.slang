@@ -102,7 +102,9 @@ float3 GetIrradianceAtPoint(float3 posW, float3 normal)
 {
     float3 totalIrradiance = { 0.0f, 0.0f, 0.0f };
 
+#ifdef WEIGHT_FUNCTIONS
     float totalWeight = 0.0f;
+#endif
 
     uint worldIndex = FlattenWorldIndex(GetWorldStructureIndex(posW));
     uint startIndex = Data.Surfels.WorldStructure[worldIndex].StartIndex;
@@ -112,15 +114,25 @@ float3 GetIrradianceAtPoint(float3 posW, float3 normal)
         float3 surfelNormal = Data.Surfels.Storage[surfelIndex].Normal;
         float3 surfelCenter = Data.Surfels.Storage[surfelIndex].Position;
         float3 surfelIrradiance = Data.Surfels.Storage[surfelIndex].Color;
-
+#ifdef WEIGHT_FUNCTIONS
         float weight = K(dist(posW, surfelCenter, surfelNormal) / SurfelRadius)
 				* pow(max(0, dot(normal, surfelNormal)), 2);
 
         totalIrradiance += weight * surfelIrradiance;
         totalWeight += weight;
+#else
+        float distan = dist(posW, surfelCenter, surfelNormal);
+        float distanceAttenuation = smoothstep(1.0f, 0.0f, distan / SurfelRadius);
+
+        totalIrradiance += surfelIrradiance
+			* distanceAttenuation // Disance attenuation
+			* max(0, dot(normal, surfelNormal)); // angular falloff
+#endif
     }
 
+#ifdef WEIGHT_FUNCTIONS
     totalIrradiance /= totalWeight;
+#endif
 
     return totalIrradiance;
 }

@@ -1,7 +1,7 @@
 import GICommon;
 import Random;
 
-#define COVERAGE_THRESHOLD 0.25
+#define COVERAGE_THRESHOLD 0.5
 
 RWTexture2D<float2> gCoverage;
 AppendStructuredBuffer<uint2> gSurfelSpawnCoords;
@@ -23,10 +23,9 @@ float computeCoverage(float3 posW, float3 normal, Surfel surfel)
 
     float3 WtoS = surfel.Position - posW;
     float distanceSquared = dot(WtoS, WtoS);
-	// Double the surfel radius, in order to push new surfels as far as possible from other surfels
-    if (distanceSquared < SurfelRadiusSquared * 4)
+    if (distanceSquared < (SurfelRadiusSquared) )
     {
-        float coeff = 1.0f - (distanceSquared / (SurfelRadiusSquared * 4));
+        float coeff = 1.0f - (distanceSquared / (SurfelRadiusSquared));
         return coeff * NdotSN;
     }
 

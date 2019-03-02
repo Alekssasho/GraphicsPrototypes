@@ -105,6 +105,20 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 			}
 		}
 
+		if (pGui->addCheckBox("Use Weight Functions", m_UseWeightFunctions))
+		{
+			if (m_UseWeightFunctions)
+			{
+				m_SurfelRendering->addDefine("WEIGHT_FUNCTIONS");
+				m_SurfelAccumulateProgram->addDefine("WEIGHT_FUNCTIONS");
+			}
+			else
+			{
+				m_SurfelRendering->removeDefine("WEIGHT_FUNCTIONS");
+				m_SurfelAccumulateProgram->removeDefine("WEIGHT_FUNCTIONS");
+			}
+		}
+
 		if (pGui->beginGroup("Statistics"))
 		{
 			auto totalSurfelsSize = sizeof(Surfel) * m_MaxSurfels;

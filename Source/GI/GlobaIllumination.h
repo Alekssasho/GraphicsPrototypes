@@ -75,4 +75,7 @@ private:
 	RtState::SharedPtr m_RTState;
 	RtScene::SharedPtr m_CachedScene;
 	int32_t m_SurfelAccumulateRayBudget;
+
+	// Rendering stuff
+	bool m_UseWeightFunctions = false;
 };
