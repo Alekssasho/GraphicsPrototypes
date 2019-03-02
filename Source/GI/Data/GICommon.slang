@@ -95,7 +95,7 @@ float K(float dist)
 float dist(float3 pos, float3 surfelCenter, float3 surfelNormal)
 {
     float3 v = (pos - surfelCenter + (2 * (dot(pos - surfelCenter, surfelNormal)) * surfelNormal));
-    return sqrt(dot(v, v));
+    return length(v);
 }
 
 float3 GetIrradianceAtPoint(float3 posW, float3 normal)
@@ -131,6 +131,11 @@ float3 GetIrradianceAtPoint(float3 posW, float3 normal)
     }
 
 #ifdef WEIGHT_FUNCTIONS
+	if(totalWeight == 0.0f)
+	{
+		return float3(0.0f);
+	}
+
     totalIrradiance /= totalWeight;
 #endif
 

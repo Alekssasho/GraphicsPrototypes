@@ -50,7 +50,7 @@ void SurfelClosestHit(inout SurfelRayPayload payload, in BuiltInTriangleIntersec
 
     float3 irradiance = GetIrradianceAtPoint(sd.posW, sd.N);
 
-    payload.Color = max(float3(0.0f), irradiance * sd.diffuse);
+    payload.Color = irradiance * sd.diffuse;
 }
 
 [shader("raygeneration")]
