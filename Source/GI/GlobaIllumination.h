@@ -20,6 +20,7 @@ public:
 		const Texture::SharedPtr& pAlbedoTexture);
 
 	Texture::SharedPtr GetSurfelCoverageTexture() { return m_Coverage; }
+	Texture::SharedPtr GetIrradianceTexture() { return m_Irradiance; }
 private:
 	void ResetGI();
 
@@ -60,6 +61,7 @@ private:
 	StructuredBuffer::SharedPtr m_WorldStructure;
 	StructuredBuffer::SharedPtr m_SurfelIndices[2];
 	uint32_t m_CurrentSurfelIndicesBuffer = 0;
+	Texture::SharedPtr m_Irradiance;
 
 	// Exclusive Scan implementation
 	StructuredBuffer::SharedPtr m_ScannedNewSurfelCounts;
@@ -77,5 +79,6 @@ private:
 	int32_t m_SurfelAccumulateRayBudget;
 
 	// Rendering stuff
-	bool m_UseWeightFunctions = false;
+	bool m_UseWeightFunctions = true;
+	bool m_ApplyGI = true;
 };

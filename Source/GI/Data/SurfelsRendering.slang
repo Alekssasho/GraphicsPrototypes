@@ -3,6 +3,7 @@ import Random;
 #include "HostDeviceSharedMacros.h"
 
 RWTexture2D<float4> gGIMap;
+RWTexture2D<float4> gIrradiance;
 
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID) : SV_TARGET0
@@ -35,9 +36,10 @@ void main(uint3 tid : SV_DispatchThreadID) : SV_TARGET0
         }
     }
 #else
-    float3 irradiace = GetIrradianceAtPoint(posW, normal);
+    float3 irradiance = GetIrradianceAtPoint(posW, normal);
+    gIrradiance[tid.xy] = float4(irradiance, 1.0f);
 
-    color.rgb = (albedo / M_PI) * irradiace;
+    color.rgb = (albedo / M_PI) * irradiance;
 #endif
 
     gGIMap[tid.xy] = color;

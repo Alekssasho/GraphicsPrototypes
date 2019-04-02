@@ -560,6 +560,14 @@ void DeferredRenderer::onFrameRender(SampleCallbacks* pSample, RenderContext* pR
 			return;
 		}
 
+		if (mControls[ControlID::VisualizeIrradiance].enabled)
+		{
+			pRenderContext->blit(mGI.GetIrradianceTexture()->getSRV(), pTargetFbo->getRenderTargetView(0));
+
+			// Do not do any post process/ao/aa
+			return;
+		}
+
 		Fbo::SharedPtr pPostProcessDst = mControls[EnableSSAO].enabled ? mpPostProcessFbo : pTargetFbo;
 		postProcess(pRenderContext, pPostProcessDst);
 		runTAA(pRenderContext, pPostProcessDst); // This will only run if we are in TAA mode

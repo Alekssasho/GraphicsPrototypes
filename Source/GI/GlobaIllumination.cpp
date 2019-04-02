@@ -19,6 +19,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_UpdateWorldStructureVars = ComputeVars::create(m_UpdateWorldStructure->getReflector());
 
 	m_Coverage = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RG32Float, 1, 1, nullptr, Resource::BindFlags::UnorderedAccess | Resource::BindFlags::ShaderResource);
+	m_Irradiance = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RGBA16Float, 1, 1, nullptr, Resource::BindFlags::UnorderedAccess | Resource::BindFlags::ShaderResource);
 
 	uint32_t initialData[3] = { 0, 1, 1 };
 	m_NewSurfelCountBuffer = Buffer::create(sizeof(uint32_t) * 3, Resource::BindFlags::UnorderedAccess, Buffer::CpuAccess::None, &initialData);
@@ -34,6 +35,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_CommonData->setStructuredBuffer("Surfels.WorldStructure", m_WorldStructure);
 
 	m_SurfelRenderingVars->setTexture("gGIMap", m_GIMap);
+	m_SurfelRenderingVars->setTexture("gIrradiance", m_Irradiance);
 
 	m_SurfelCoverageVars["GlobalState"]["globalSpawnChance"] = m_SpawnChance;
 	m_SurfelCoverageVars->setStructuredBuffer("gSurfelSpawnCoords", m_SurfelSpawnCoords);
@@ -73,11 +75,17 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_SurfelAccumulateProgram = RtProgram::create(rtDesc, sizeof(float4));
 	m_RTState = RtState::create();
 	m_RTState->setProgram(m_SurfelAccumulateProgram);
-	m_RTState->setMaxTraceRecursionDepth(1);
+	m_RTState->setMaxTraceRecursionDepth(2);
 
 	m_SurfelAccumulateRayBudget = 2048 * 4;
 	m_MaxSurfels = 1024 * 1024;
 	ResetGI();
+
+	if (m_UseWeightFunctions)
+	{
+		m_SurfelRendering->addDefine("WEIGHT_FUNCTIONS");
+		m_SurfelAccumulateProgram->addDefine("WEIGHT_FUNCTIONS");
+	}
 }
 
 void GlobalIllumination::RenderUI(Gui* pGui)
@@ -104,6 +112,8 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 				m_SurfelRendering->removeDefine("VISUALIZE");
 			}
 		}
+	
+		pGui->addCheckBox("Apply GI", m_ApplyGI);
 
 		if (pGui->addCheckBox("Use Weight Functions", m_UseWeightFunctions))
 		{
@@ -254,6 +264,11 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
 	}
 
 	pSceneRenderer->renderScene(pContext, m_SurfelAccumulateVars, m_RTState, { m_SurfelAccumulateRayBudget, 1, 1});
+
+	if (!m_ApplyGI)
+	{
+		pContext->clearUAV(m_GIMap->getUAV().get(), uvec4{0, 0, 0, 0});
+	}
 
 	return m_GIMap;
 }

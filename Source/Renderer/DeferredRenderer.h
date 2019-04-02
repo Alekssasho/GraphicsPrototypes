@@ -176,6 +176,7 @@ private:
 		VisualizeAO,
 		VisualizeSurfelCoverage,
 		VisualizeGI,
+		VisualizeIrradiance,
 		Count
 	};
 

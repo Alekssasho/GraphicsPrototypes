@@ -30,6 +30,7 @@ void DeferredRenderer::initControls()
 	mControls[ControlID::VisualizeAO] = { false, false, "VISUALIZE_AO_MAP" };
 	mControls[ControlID::VisualizeSurfelCoverage] = { false, false, "" };
 	mControls[ControlID::VisualizeGI] = { false, false, "" };
+	mControls[ControlID::VisualizeIrradiance] = { false, false, "" };
 
 	for (uint32_t i = 0; i < ControlID::Count; i++)
 	{
@@ -203,6 +204,7 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 		{
 			pGui->addCheckBox("Visualize GI Map", mControls[ControlID::VisualizeGI].enabled);
 			pGui->addCheckBox("Visualize Surfel Coverage", mControls[ControlID::VisualizeSurfelCoverage].enabled);
+			pGui->addCheckBox("Visualize Irradinace", mControls[ControlID::VisualizeIrradiance].enabled);
 			pGui->endGroup();
 		}
 
