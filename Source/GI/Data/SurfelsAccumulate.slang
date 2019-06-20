@@ -77,7 +77,7 @@ void SurfelClosestHit(inout SurfelRayPayload payload, in BuiltInTriangleIntersec
 		ray,
 		lightRayPayload);
 
-    float3 radiance = (!lightRayPayload.Hit * sr.color.rgb) * float(gLightsCount);
+    float3 radiance = (!lightRayPayload.Hit * sr.diffuse.rgb) * float(gLightsCount);
     payload.Color += radiance;
 }
 

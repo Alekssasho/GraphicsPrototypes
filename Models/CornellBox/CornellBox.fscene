@@ -1,0 +1,86 @@
+{
+    "version": 2,
+    "camera_speed": 1.0,
+    "lighting_scale": 1.0,
+    "models": [
+        {
+            "file": "Cornell.fbx",
+            "name": "Cornell",
+            "material": {
+                "shading_model": "metal_rough"
+            },
+            "instances": [
+                {
+                    "name": "Cornell0",
+                    "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scaling": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "rotation": [
+                        0.0,
+                        -0.0,
+                        -0.0
+                    ]
+                }
+            ]
+        }
+    ],
+    "cameras": [
+        {
+            "name": "Camera0",
+            "pos": [
+                1.436,
+                4.445,
+                8.427
+            ],
+            "target": [
+                1.469,
+                4.123,
+                7.481
+            ],
+            "up": [
+                0.0,
+                1.0,
+                0.0
+            ],
+            "focal_length": 21.0,
+            "depth_range": [
+                0.10000000149011612,
+                10000.0
+            ],
+            "aspect_ratio": 1.7769999504089356
+        }
+    ],
+    "lights": [
+        {
+            "name": "PointLight0",
+            "type": "point_light",
+            "intensity": [
+                20.0,
+                20.0,
+                20.0
+            ],
+            "pos": [
+                2.700000047683716,
+                5.099999904632568,
+                3.5999999046325685
+            ],
+            "direction": [
+                0.0,
+                -1.0,
+                0.0
+            ],
+            "opening_angle": 180.0,
+            "penumbra_angle": 0.0
+        }
+    ],
+    "user_defined": {
+        "sky_box": "BlueSky.png"
+    }
+}
