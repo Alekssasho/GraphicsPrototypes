@@ -75,7 +75,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_SurfelAccumulateProgram = RtProgram::create(rtDesc, sizeof(float4));
 	m_RTState = RtState::create();
 	m_RTState->setProgram(m_SurfelAccumulateProgram);
-	m_RTState->setMaxTraceRecursionDepth(2);
+	m_RTState->setMaxTraceRecursionDepth(1);
 
 	m_SurfelAccumulateRayBudget = 2048 * 4;
 	m_MaxSurfels = 1024 * 1024;
