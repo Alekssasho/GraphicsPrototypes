@@ -25,6 +25,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     surfel.Normal = GetNormal(screenPos);
     surfel.Color = float3(0.0f, 0.0f, 0.0f);
     surfel.Age = 0;
+    surfel.DebugData = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     Data.Surfels.Storage[currentCount + tid.x] = surfel;
 

@@ -16,6 +16,7 @@ cbuffer GlobalState
 struct SurfelRayPayload
 {
 	float3 Color;
+    float3 DebugData;
 };
 
 struct LightRayPayload
@@ -29,6 +30,7 @@ RaytracingAccelerationStructure rtScene;
 void SurfelRayMiss(inout SurfelRayPayload payload)
 {
 	payload.Color = float3(0.0f, 0.0f, 0.0f);
+    payload.DebugData = float3(0.0f, 0.0f, 0.0f);
 }
 
 [shader("miss")]
@@ -52,6 +54,7 @@ void SurfelClosestHit(inout SurfelRayPayload payload, in BuiltInTriangleIntersec
 	float3 irradiance = GetIrradianceAtPoint(sd.posW, sd.N);
 
 	payload.Color = irradiance * (sd.diffuse / M_PI);
+    payload.DebugData = irradiance;
 }
 
 [shader("raygeneration")]
@@ -76,6 +79,7 @@ void SurfelRayGeneration()
 	float3 irradiance = 0.0f;
 
 	SurfelRayPayload surfelRayPayload;
+    surfelRayPayload.DebugData = float3(0.0f, 0.0f, 0.0f);
 	TraceRay(rtScene,
 		0,
 		0xff,
@@ -86,6 +90,7 @@ void SurfelRayGeneration()
 		surfelRayPayload);
 
 	irradiance += surfelRayPayload.Color;
+    Data.Surfels.Storage[surfelIndex].DebugData = float4(surfelRayPayload.DebugData, 0.0f);
 
 
 	// Explicit light sample

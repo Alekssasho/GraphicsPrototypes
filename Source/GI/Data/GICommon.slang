@@ -22,6 +22,7 @@ struct CommonData
     GBufferTextures GBuffer;
     SurfelsData Surfels;
     CameraData Camera;
+    RWTexture2D<float4> DebugTexture;
 };
 
 ParameterBlock<CommonData> Data;

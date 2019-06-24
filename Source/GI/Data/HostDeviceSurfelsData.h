@@ -5,10 +5,11 @@
 
 struct Surfel
 {
-	float3 Position DEFAULTS(float3(0.0f, 0.0f, 0.0f));
-	float3 Normal   DEFAULTS(float3(0.0f, 0.0f, 1.0f));
-	float3 Color    DEFAULTS(float3(0.0f, 0.0f, 0.0f));
-	uint Age        DEFAULTS(0);
+	float3 Position  DEFAULTS(float3(0.0f, 0.0f, 0.0f));
+	float3 Normal    DEFAULTS(float3(0.0f, 0.0f, 1.0f));
+	float3 Color     DEFAULTS(float3(0.0f, 0.0f, 0.0f));
+	uint Age         DEFAULTS(0);
+	float4 DebugData DEFAULTS(float4(0.0f, 0.0f, 0.0f, 0.0f));
 };
 
 struct WorldStructureChunk

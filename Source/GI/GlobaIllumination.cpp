@@ -20,6 +20,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 
 	m_Coverage = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RG32Float, 1, 1, nullptr, Resource::BindFlags::UnorderedAccess | Resource::BindFlags::ShaderResource);
 	m_Irradiance = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RGBA16Float, 1, 1, nullptr, Resource::BindFlags::UnorderedAccess | Resource::BindFlags::ShaderResource);
+	m_DebugTexture = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RGBA32Float, 1, 1, nullptr, Resource::BindFlags::UnorderedAccess | Resource::BindFlags::ShaderResource);
 
 	uint32_t initialData[3] = { 0, 1, 1 };
 	m_NewSurfelCountBuffer = Buffer::create(sizeof(uint32_t) * 3, Resource::BindFlags::UnorderedAccess, Buffer::CpuAccess::None, &initialData);
@@ -72,7 +73,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	rtDesc.addMiss(0, "SurfelRayMiss");
 	rtDesc.addHitGroup(1, "", "LightRayAnyHit");
 	rtDesc.addMiss(1, "LightRayMiss");
-	m_SurfelAccumulateProgram = RtProgram::create(rtDesc, sizeof(float4));
+	m_SurfelAccumulateProgram = RtProgram::create(rtDesc, sizeof(float4) * 2);
 	m_RTState = RtState::create();
 	m_RTState->setProgram(m_SurfelAccumulateProgram);
 	m_RTState->setMaxTraceRecursionDepth(1);
@@ -168,6 +169,7 @@ void GlobalIllumination::ResetGI()
 	uint32_t count = 0;
 	m_SurfelCount->setBlob(&count, 0, sizeof(uint32_t));
 	m_CommonData->setStructuredBuffer("Surfels.Count", m_SurfelCount);
+	m_CommonData->setTexture("DebugTexture", m_DebugTexture);
 
 	m_SurfelIndices[0] = StructuredBuffer::create(m_UpdateWorldStructure, "gNewSurfelIndices", m_MaxSurfels);
 	m_SurfelIndices[1] = StructuredBuffer::create(m_UpdateWorldStructure, "gNewSurfelIndices", m_MaxSurfels);
@@ -246,6 +248,7 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
 
 	pContext->popComputeState();
 
+
 	// RT Update
 	auto currentScene = std::static_pointer_cast<RtScene>(pSceneRenderer->getScene());
 	if (!m_SurfelAccumulateVars ||
@@ -254,6 +257,11 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
 		m_CachedScene = currentScene;
 		m_SurfelAccumulateVars = RtProgramVars::create(m_SurfelAccumulateProgram, m_CachedScene);
 		m_SurfelAccumulateVars->getRayGenVars()->setParameterBlock("Data", m_CommonData);
+		for (auto i = 0u; i < m_SurfelAccumulateVars->getHitProgramsCount(); ++i) {
+			for (auto& v : m_SurfelAccumulateVars->getHitVars(i)) {
+				v->setParameterBlock("Data", m_CommonData);
+			}
+		}
 		auto loc = m_SurfelAccumulateVars->getRayGenVars()->getReflection()->getDefaultParameterBlock()->getResourceBinding("rtScene");
 		m_SurfelAccumulateVars->getRayGenVars()->getDefaultBlock()->setSrv(loc, 0, m_CachedScene->getTlasSrv(m_SurfelAccumulateVars->getHitProgramsCount()));
 	}
@@ -263,12 +271,17 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
 		const_cast<GraphicsVars::SharedPtr&>(m_SurfelAccumulateVars->getRayGenVars())["GlobalState"]["globalTime"] = float(currentTime);
 	}
 
-	pSceneRenderer->renderScene(pContext, m_SurfelAccumulateVars, m_RTState, { m_SurfelAccumulateRayBudget, 1, 1});
+	// TODO: add budget actually !
+	uint32_t count;
+	m_SurfelCount->getVariable(0, 0, count);
+
+	pSceneRenderer->renderScene(pContext, m_SurfelAccumulateVars, m_RTState, { count, 1, 1});
 
 	if (!m_ApplyGI)
 	{
 		pContext->clearUAV(m_GIMap->getUAV().get(), uvec4{0, 0, 0, 0});
 	}
+
 
 	return m_GIMap;
 }

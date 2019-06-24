@@ -21,6 +21,7 @@ public:
 
 	Texture::SharedPtr GetSurfelCoverageTexture() { return m_Coverage; }
 	Texture::SharedPtr GetIrradianceTexture() { return m_Irradiance; }
+	Texture::SharedPtr GetDebugTexture() { return m_DebugTexture; }
 private:
 	void ResetGI();
 
@@ -81,4 +82,6 @@ private:
 	// Rendering stuff
 	bool m_UseWeightFunctions = true;
 	bool m_ApplyGI = true;
+
+	Texture::SharedPtr m_DebugTexture;
 };
