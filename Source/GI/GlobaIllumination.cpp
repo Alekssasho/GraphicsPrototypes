@@ -4,7 +4,7 @@
 
 void GlobalIllumination::Initilize(const uvec2& giMapSize)
 {
-	m_GIMap = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RGBA8Unorm, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
+	m_GIMap = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RGBA8Unorm, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess | ResourceBindFlags::RenderTarget);
 
 	m_SurfelRendering = ComputeProgram::createFromFile("SurfelsRendering.slang", "main");
 	m_SurfelRenderingVars = ComputeVars::create(m_SurfelRendering->getReflector());
@@ -87,6 +87,11 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 		m_SurfelRendering->addDefine("WEIGHT_FUNCTIONS");
 		m_SurfelAccumulateProgram->addDefine("WEIGHT_FUNCTIONS");
 	}
+
+	m_Blur = GaussianBlur::create(5, 2.0f);
+	Fbo::Desc fboDesc;
+	m_BlurFbo = FboHelper::create2D(giMapSize.x, giMapSize.y, fboDesc);
+	m_BlurFbo->attachColorTarget(m_GIMap, 0);
 }
 
 void GlobalIllumination::RenderUI(Gui* pGui)
@@ -128,6 +133,13 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 				m_SurfelRendering->removeDefine("WEIGHT_FUNCTIONS");
 				m_SurfelAccumulateProgram->removeDefine("WEIGHT_FUNCTIONS");
 			}
+		}
+
+		pGui->addCheckBox("Apply Blur", m_ApplyBlur);
+		if (m_ApplyBlur)
+		{
+			m_Blur->renderUI(pGui, "Blur Settings");
+
 		}
 
 		if (pGui->beginGroup("Statistics"))
@@ -248,6 +260,10 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
 
 	pContext->popComputeState();
 
+	if (m_ApplyBlur)
+	{
+		m_Blur->execute(pContext, m_GIMap, m_BlurFbo);
+	}
 
 	// RT Update
 	auto currentScene = std::static_pointer_cast<RtScene>(pSceneRenderer->getScene());
@@ -281,7 +297,6 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
 	{
 		pContext->clearUAV(m_GIMap->getUAV().get(), uvec4{0, 0, 0, 0});
 	}
-
 
 	return m_GIMap;
 }

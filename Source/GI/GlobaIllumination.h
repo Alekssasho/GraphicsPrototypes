@@ -84,4 +84,7 @@ private:
 	bool m_ApplyGI = true;
 
 	Texture::SharedPtr m_DebugTexture;
+	GaussianBlur::UniquePtr m_Blur;
+	bool m_ApplyBlur = false;
+	Fbo::SharedPtr m_BlurFbo;
 };
