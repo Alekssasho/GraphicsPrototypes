@@ -17,7 +17,8 @@ public:
 		const Camera* pCamera,
 		const Texture::SharedPtr& pDepthTexture,
 		const Texture::SharedPtr& pNormalTexture,
-		const Texture::SharedPtr& pAlbedoTexture);
+		const Texture::SharedPtr& pAlbedoTexture,
+		const Texture::SharedPtr& pPositionTexture);
 
 	Texture::SharedPtr GetSurfelCoverageTexture() { return m_Coverage; }
 	Texture::SharedPtr GetIrradianceTexture() { return m_Irradiance; }

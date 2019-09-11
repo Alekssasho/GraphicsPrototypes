@@ -197,12 +197,14 @@ Texture::SharedPtr GlobalIllumination::GenerateGIMap(RenderContext* pContext,
 	const Camera* pCamera,
 	const Texture::SharedPtr& pDepthTexture,
 	const Texture::SharedPtr& pNormalTexture,
-	const Texture::SharedPtr& pAlbedoTexture)
+	const Texture::SharedPtr& pAlbedoTexture,
+	const Texture::SharedPtr& pPositionTexture)
 {
 	// Prepare common data
 	m_CommonData->setTexture("GBuffer.Normal", pNormalTexture);
 	m_CommonData->setTexture("GBuffer.Depth", pDepthTexture);
 	m_CommonData->setTexture("GBuffer.Albedo", pAlbedoTexture);
+	m_CommonData->setTexture("GBuffer.Position", pPositionTexture);
 	pCamera->setIntoConstantBuffer(
 		m_CommonData->getDefaultConstantBuffer().get(),
 		"Camera");

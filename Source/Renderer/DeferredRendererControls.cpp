@@ -91,6 +91,7 @@ void DeferredRenderer::applyAaMode(SampleCallbacks* pSample)
 	fboDesc.setColorTarget(0, ResourceFormat::RGBA8Unorm);
 	fboDesc.setColorTarget(1, ResourceFormat::RGBA8Unorm);
 	fboDesc.setColorTarget(2, ResourceFormat::RGBA8Unorm);
+	fboDesc.setColorTarget(3, ResourceFormat::RGBA32Float);
 	fboDesc.setDepthStencilTarget(ResourceFormat::D32Float);
 
 	// Release the TAA FBOs
@@ -100,7 +101,7 @@ void DeferredRenderer::applyAaMode(SampleCallbacks* pSample)
 	{
 		mGBufferPass.pProgram->removeDefine("INTERPOLATION_MODE");
 		mGBufferPass.pProgram->addDefine("_OUTPUT_MOTION_VECTORS");
-		fboDesc.setColorTarget(3, ResourceFormat::RG16Float);
+		fboDesc.setColorTarget(4, ResourceFormat::RG16Float);
 
 		Fbo::Desc taaFboDesc;
 		taaFboDesc.setColorTarget(0, ResourceFormat::RGBA8UnormSrgb);

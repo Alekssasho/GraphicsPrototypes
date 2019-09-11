@@ -44,6 +44,7 @@ struct GBufferTextures
 	Texture2D Texture0;
 	Texture2D Texture1;
 	Texture2D Texture2;
+    Texture2D Texture3;
 	Texture2D Depth;
 };
 
@@ -53,17 +54,18 @@ Texture2D gVisibilityBuffer;
 
 float3 reconstructWorldPosition(int3 loc, float2 texC)
 {
-	// Reconstruct World Position
-	float depth = GB.Depth.Load(loc).r;
-	float2 ndcCoords = texC * 2.0f - 1.0f;
-	ndcCoords.y = -ndcCoords.y;
-	float4 projectedPos = float4(ndcCoords, depth, 1.0f);
-	float4 transformedPos = mul(projectedPos, Camera.invViewProj);
-	return transformedPos.xyz / transformedPos.w;
+	//// Reconstruct World Position
+	//float depth = GB.Depth.Load(loc).r;
+	//float2 ndcCoords = texC * 2.0f - 1.0f;
+	//ndcCoords.y = -ndcCoords.y;
+	//float4 projectedPos = float4(ndcCoords, depth, 1.0f);
+	//float4 transformedPos = mul(projectedPos, Camera.invViewProj);
+	//return transformedPos.xyz / transformedPos.w;
+    return GB.Texture3.Load(loc).xyz;
 }
 
 #ifdef DEBUG_MODE
-float4 debugMode(int3 loc)
+float4 debugMode(int3 loc, float2 texC)
 {
 	switch(DebugMode)
 	{
@@ -74,7 +76,8 @@ float4 debugMode(int3 loc)
 	case 3:
 		return float4(GB.Texture2.Load(loc).xyz, 1.0f);
 	case 4:
-		return float4(GB.Texture2.Load(loc).aaa, 1.0f);
+		return float4(reconstructWorldPosition(loc, texC), 1.0f);
+		//return float4(GB.Texture2.Load(loc).aaa, 1.0f);
 	case 5:
 		float depth = GB.Depth.Load(loc).r;
 		float f = Camera.farZ;
@@ -127,7 +130,7 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET0
 	float4 color;
 	int3 position = int3(pos.xy, 0);
 #ifdef DEBUG_MODE
-	color = debugMode(position);
+	color = debugMode(position, texC);
 #else
 	color = applyLighting(position, texC);
 #endif

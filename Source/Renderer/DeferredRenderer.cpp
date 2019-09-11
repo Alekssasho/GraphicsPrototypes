@@ -291,7 +291,7 @@ void DeferredRenderer::beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint
 	if (mAAMode == AAMode::TAA)
 	{
 		glm::vec2 targetResolution = glm::vec2(pTargetFbo->getWidth(), pTargetFbo->getHeight());
-		pContext->clearRtv(mpGBufferFbo->getColorTexture(3)->getRTV().get(), vec4(0));
+		pContext->clearRtv(mpGBufferFbo->getColorTexture(4)->getRTV().get(), vec4(0));
 	}
 }
 
@@ -333,6 +333,7 @@ void DeferredRenderer::lightingPass(RenderContext* pContext, Fbo* pTargetFbo)
 	mLightingPass.pGBufferBlock->setTexture("Texture0", mpGBufferFbo->getColorTexture(0));
 	mLightingPass.pGBufferBlock->setTexture("Texture1", mpGBufferFbo->getColorTexture(1));
 	mLightingPass.pGBufferBlock->setTexture("Texture2", mpGBufferFbo->getColorTexture(2));
+	mLightingPass.pGBufferBlock->setTexture("Texture3", mpGBufferFbo->getColorTexture(3));
 	mLightingPass.pGBufferBlock->setTexture("Depth", mpGBufferFbo->getDepthStencilTexture());
 
 	if (mGBufferDebugMode != GBufferDebugMode::None)
@@ -435,7 +436,7 @@ void DeferredRenderer::runTAA(RenderContext* pContext, Fbo::SharedPtr pColorFbo)
 		PROFILE("runTAA");
 		//  Get the Current Color and Motion Vectors
 		const Texture::SharedPtr pCurColor = pColorFbo->getColorTexture(0);
-		const Texture::SharedPtr pMotionVec = mpGBufferFbo->getColorTexture(3);
+		const Texture::SharedPtr pMotionVec = mpGBufferFbo->getColorTexture(4);
 
 		//  Get the Previous Color
 		const Texture::SharedPtr pPrevColor = mTAA.getInactiveFbo()->getColorTexture(0);
@@ -465,7 +466,8 @@ void DeferredRenderer::runGI(RenderContext* pContext, double currentTime)
 			mpSceneRenderer->getScene()->getActiveCamera().get(),
 			mpGBufferFbo->getDepthStencilTexture(),
 			mpGBufferFbo->getColorTexture(2),
-			mpGBufferFbo->getColorTexture(0))
+			mpGBufferFbo->getColorTexture(0),
+			mpGBufferFbo->getColorTexture(3))
 	);
 }
 
