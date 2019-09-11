@@ -64,7 +64,7 @@ void SurfelRayGeneration()
 
 	uint surfelIndex = index % Data.Surfels.Count[0];
 
-	uint randSeed = rand_init(index, globalTime, 16);
+	uint randSeed = rand_init(index, globalTime * 100, 16);
 	float2 randVal = float2(rand_next(randSeed), rand_next(randSeed));
 
 	RayDesc ray;

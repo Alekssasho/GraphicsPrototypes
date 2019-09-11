@@ -20,8 +20,8 @@ void main(uint3 tid : SV_DispatchThreadID) : SV_TARGET0
     for (uint i = 0; i < Data.Surfels.WorldStructure[worldIndex].Count; ++i)
     {
 		uint surfelIndex = Data.Surfels.Indices[startIndex + i];
-        float3 distanceVec = posW - Data.Surfels.Storage[surfelIndex].Position;
-        if ((SurfelRadius * SurfelRadius) >= dot(distanceVec, distanceVec))
+		float distance = dist(posW, Data.Surfels.Storage[surfelIndex].Position, Data.Surfels.Storage[surfelIndex].Normal);
+        if (distance <= SurfelRadius)
         {
             // Check normals direction
             if (dot(normal, Data.Surfels.Storage[surfelIndex].Normal) > 0)
@@ -47,8 +47,8 @@ void main(uint3 tid : SV_DispatchThreadID) : SV_TARGET0
     for (uint i = 0; i < Data.Surfels.WorldStructure[worldIndex].Count; ++i)
     {
         uint surfelIndex = Data.Surfels.Indices[startIndex + i];
-        float3 distanceVec = posW - Data.Surfels.Storage[surfelIndex].Position;
-        if ((SurfelRadius * SurfelRadius) >= dot(distanceVec, distanceVec))
+        float distance = dist(posW, Data.Surfels.Storage[surfelIndex].Position, Data.Surfels.Storage[surfelIndex].Normal);
+        if (distance <= SurfelRadius)
         {
             // Check normals direction
             if (dot(normal, Data.Surfels.Storage[surfelIndex].Normal) > 0)

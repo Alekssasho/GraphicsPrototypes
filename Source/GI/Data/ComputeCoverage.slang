@@ -21,11 +21,10 @@ float computeCoverage(float3 posW, float3 normal, Surfel surfel)
     if(NdotSN <= 0)
         return 0.0f;
 
-    float3 WtoS = surfel.Position - posW;
-    float distanceSquared = dot(WtoS, WtoS);
-    if (distanceSquared < (SurfelRadiusSquared) )
+    float distance = dist(posW, surfel.Position, surfel.Normal);
+    if (distance <= SurfelRadius)
     {
-        float coeff = 1.0f - (distanceSquared / (SurfelRadiusSquared));
+        float coeff = 1.0f - (distance / SurfelRadius);
         return coeff * NdotSN;
     }
 
