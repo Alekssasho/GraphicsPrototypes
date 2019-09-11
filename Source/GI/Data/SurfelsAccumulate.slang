@@ -124,10 +124,9 @@ void SurfelRayGeneration()
 	irradiance += radiance;
 
 	// Moving exponential average
-	// TODO: Return to exponential average
 	Data.Surfels.Storage[surfelIndex].Color = lerp(
-		Data.Surfels.Storage[surfelIndex].Color,
 		irradiance,
-		1.0f / (Data.Surfels.Storage[surfelIndex].Age + 1));
+		Data.Surfels.Storage[surfelIndex].Color,
+		0.99f);
 	Data.Surfels.Storage[surfelIndex].Age++;
 }
