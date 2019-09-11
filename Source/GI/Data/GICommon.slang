@@ -101,6 +101,18 @@ float dist(float3 pos, float3 surfelCenter, float3 surfelNormal)
     return length(v);
 }
 
+float2 GetProjectedDistanceFromSurfel(float3 position, in float3 sposition, in float3 snormal)
+{
+    float dirDot = dot((position - sposition), snormal);
+	
+    float3 projected = position - dirDot * snormal;
+	
+    float d = distance(projected, sposition);
+
+    return float2(d, abs(dirDot));
+}
+
+
 float3 GetIrradianceAtPoint(float3 posW, float3 normal)
 {
     float3 totalIrradiance = { 0.0f, 0.0f, 0.0f };
@@ -118,18 +130,38 @@ float3 GetIrradianceAtPoint(float3 posW, float3 normal)
         float3 surfelCenter = Data.Surfels.Storage[surfelIndex].Position;
         float3 surfelIrradiance = Data.Surfels.Storage[surfelIndex].Color;
 #ifdef WEIGHT_FUNCTIONS
-        float weight = K(dist(posW, surfelCenter, surfelNormal) / SurfelRadius)
-				* pow(max(0, dot(normal, surfelNormal)), 2);
+    //    float weight = K(dist(posW, surfelCenter, surfelNormal) / SurfelRadius)
+				//* pow(max(0, dot(normal, surfelNormal)), 2);
 
-        totalIrradiance += weight * surfelIrradiance;
+    //    totalIrradiance += weight * surfelIrradiance;
+    //    totalWeight += weight;
+
+
+        float2 d = GetProjectedDistanceFromSurfel(posW, surfelCenter, surfelNormal);
+        float2 times = d * d;
+        float exp1 = exp(times.x * (-1.f / (2 * 3 * SurfelRadius * 3 * SurfelRadius)));
+        float div = (times.y * (5.0f / (SurfelRadius)) + 1.0f);
+        float weight = exp1 / div;
+        float dot1 = dot(normal, surfelNormal);
+        float isCovered = saturate(dot1) * weight;
+        totalIrradiance = mad(surfelIrradiance, isCovered, totalIrradiance);
         totalWeight += weight;
 #else
-        float distan = dist(posW, surfelCenter, surfelNormal);
-        float distanceAttenuation = smoothstep(1.0f, 0.0f, distan / SurfelRadius);
 
-        totalIrradiance += surfelIrradiance
-			* distanceAttenuation // Disance attenuation
-			* max(0, dot(normal, surfelNormal)); // angular falloff
+
+
+        //float distance = dist(posW, surfelCenter, surfelNormal);
+        //float distanceAttenuation = smoothstep(1.0f, 0.0f, distance / SurfelRadius);
+
+        //float3 irradiance = (surfelIrradiance * max(0, dot(normal, surfelNormal))) / pow((distance / SurfelRadius) + 1.0f, 2.0f);
+        float3 lightDir = surfelCenter - posW;
+        float lightDist = length(lightDir);
+        lightDir = lightDir / lightDist;
+
+        float3 irradiance = max(dot(normal, lightDir), 0.0f) * surfelIrradiance;
+        irradiance *= max(dot(surfelNormal, -lightDir), 0.0f) / (lightDist * lightDist + 0.0001f);
+
+        totalIrradiance += irradiance;// / Data.Surfels.WorldStructure[worldIndex].Count;
 #endif
     }
 
@@ -141,6 +173,37 @@ float3 GetIrradianceAtPoint(float3 posW, float3 normal)
 
     totalIrradiance /= totalWeight;
 #endif
+
+    return totalIrradiance;
+}
+
+float3 GetIrradianceAtPointWithSurfaceReconstruction(float3 posW, float3 normal)
+{
+    float3 totalIrradiance = { 0.0f, 0.0f, 0.0f };
+
+    float totalWeight = 0.0f;
+
+    uint worldIndex = FlattenWorldIndex(GetWorldStructureIndex(posW));
+    uint startIndex = Data.Surfels.WorldStructure[worldIndex].StartIndex;
+    for (uint i = 0; i < Data.Surfels.WorldStructure[worldIndex].Count; ++i)
+    {
+        uint surfelIndex = Data.Surfels.Indices[startIndex + i];
+        float3 surfelNormal = Data.Surfels.Storage[surfelIndex].Normal;
+        float3 surfelCenter = Data.Surfels.Storage[surfelIndex].Position;
+        float3 surfelIrradiance = Data.Surfels.Storage[surfelIndex].Color;
+        float weight = K(dist(posW, surfelCenter, surfelNormal) / SurfelRadius)
+				* pow(max(0, dot(normal, surfelNormal)), 2);
+
+        totalIrradiance += weight * surfelIrradiance;
+        totalWeight += weight;
+    }
+
+	if(totalWeight == 0.0f)
+	{
+		return float3(0.0f);
+	}
+
+    totalIrradiance /= totalWeight;
 
     return totalIrradiance;
 }

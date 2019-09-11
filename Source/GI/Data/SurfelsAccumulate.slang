@@ -51,7 +51,7 @@ void SurfelClosestHit(inout SurfelRayPayload payload, in BuiltInTriangleIntersec
 	VertexOut vOut = getVertexAttributes(PrimitiveIndex(), attribs);
 	ShadingData sd = prepareShadingData(vOut, gMaterial, WorldRayOrigin(), 0);
 
-	float3 irradiance = GetIrradianceAtPoint(sd.posW, sd.N);
+    float3 irradiance = GetIrradianceAtPointWithSurfaceReconstruction(sd.posW, sd.N);
 
 	payload.Color = irradiance * (sd.diffuse / M_PI);
     payload.DebugData = irradiance;
