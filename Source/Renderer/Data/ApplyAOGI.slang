@@ -33,6 +33,10 @@ Texture2D gColor;
 Texture2D gAOMap;
 Texture2D gGIMap;
 
+cbuffer ApplyAOGIData {
+	float ambientValue;
+};
+
 float4 main(float2 texC : TEXCOORD) : SV_TARGET0
 {
 	float4 color;
@@ -40,7 +44,7 @@ float4 main(float2 texC : TEXCOORD) : SV_TARGET0
 	color = float4(1.0, 1.0, 1.0, 1.0);
 #else
 	color = gColor.SampleLevel(gSampler, texC, 0);
-	color += gGIMap.SampleLevel(gSampler, texC, 0);
+    color += gGIMap.SampleLevel(gSampler, texC, 0) * ambientValue;
 #endif
 	return applyAmbientOcclusion(color, gAOMap, gSampler, texC);
 }

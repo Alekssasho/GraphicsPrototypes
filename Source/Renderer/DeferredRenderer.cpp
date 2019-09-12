@@ -33,7 +33,8 @@ struct MarkerScope
 	RenderContext* m_Context;
 };
 
-const std::string DeferredRenderer::skDefaultScene = "Arcade/Arcade.fscene";
+//const std::string DeferredRenderer::skDefaultScene = "Arcade/Arcade.fscene";
+const std::string DeferredRenderer::skDefaultScene = "G:/Development/Models/MorganMcGuire/CornellBox/falcor_scene.fscene";
 
 void DeferredRenderer::initDepthPass()
 {
@@ -91,6 +92,7 @@ void DeferredRenderer::initSSAO()
 	Sampler::Desc desc;
 	desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
 	mSSAO.pVars->setSampler("gSampler", Sampler::create(desc));
+	ambientValue = 1.0f;
 }
 
 void DeferredRenderer::setSceneSampler(uint32_t maxAniso)
@@ -472,6 +474,7 @@ void DeferredRenderer::runGI(RenderContext* pContext, double currentTime)
 void DeferredRenderer::applyAOGI(RenderContext* pContext, Fbo::SharedPtr pTargetFbo)
 {
 	mSSAO.pVars->setTexture("gColor", mpPostProcessFbo->getColorTexture(0));
+	mSSAO.pVars["ApplyAOGIData"]["ambientValue"] = ambientValue;
 
 	pContext->getGraphicsState()->setFbo(pTargetFbo);
 	pContext->setGraphicsVars(mSSAO.pVars);

@@ -114,9 +114,9 @@ float3 GetIrradianceAtPoint(float3 posW, float3 normal)
         uint surfelIndex = Data.Surfels.Indices[startIndex + i];
         float3 surfelNormal = Data.Surfels.Storage[surfelIndex].Normal;
         float3 surfelCenter = Data.Surfels.Storage[surfelIndex].Position;
-        float3 surfelIrradiance = Data.Surfels.Storage[surfelIndex].Color;
+        float3 surfelIrradiance = Data.Surfels.Storage[surfelIndex].Irradiance.mean;
 #ifdef WEIGHT_FUNCTIONS
-        float weight = K(dist(posW, surfelCenter, surfelNormal) / SurfelRadius)
+        float weight = smoothstep(1.0f, 0.0f, dist(posW, surfelCenter, surfelNormal) / SurfelRadius)
 				* pow(max(0, dot(normal, surfelNormal)), 2);
 
         totalIrradiance += weight * surfelIrradiance;

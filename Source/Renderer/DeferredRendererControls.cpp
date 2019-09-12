@@ -203,6 +203,7 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 		mGI.RenderUI(pGui);
 		if (pGui->beginGroup("Debug GI"))
 		{
+			pGui->addFloatSlider("Ambient Multiplier", ambientValue, 0.0f, 1.0f);
 			pGui->addCheckBox("Visualize GI Map", mControls[ControlID::VisualizeGI].enabled);
 			pGui->addCheckBox("Visualize Surfel Coverage", mControls[ControlID::VisualizeSurfelCoverage].enabled);
 			pGui->addCheckBox("Visualize Irradinace", mControls[ControlID::VisualizeIrradiance].enabled);

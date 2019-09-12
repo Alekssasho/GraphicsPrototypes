@@ -53,7 +53,7 @@ void main(uint3 tid : SV_DispatchThreadID) : SV_TARGET0
             // Check normals direction
             if (dot(normal, Data.Surfels.Storage[surfelIndex].Normal) > 0)
             {
-                colorext = Data.Surfels.Storage[surfelIndex].DebugData;
+                //colorext = Data.Surfels.Storage[surfelIndex].DebugData;
                 //colorext = float4(albedo, 0.0f);
                 break;
             }

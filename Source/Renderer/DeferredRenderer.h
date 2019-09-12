@@ -231,4 +231,6 @@ private:
 
 	// GI
 	GlobalIllumination mGI;
+
+	float ambientValue;
 };

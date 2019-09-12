@@ -1,7 +1,7 @@
 import GICommon;
 import Random;
 
-#define COVERAGE_THRESHOLD 0.5
+#define COVERAGE_THRESHOLD 3
 
 RWTexture2D<float2> gCoverage;
 AppendStructuredBuffer<uint2> gSurfelSpawnCoords;

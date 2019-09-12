@@ -23,9 +23,15 @@ void main(uint3 tid : SV_DispatchThreadID)
     Surfel surfel;
     surfel.Position = GetWorldPosition(screenPos);
     surfel.Normal = GetNormal(screenPos);
-    surfel.Color = float3(0.0f, 0.0f, 0.0f);
-    surfel.Age = 0;
-    surfel.DebugData = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    surfel.Irradiance.mean = float3(0.0f, 0.0f, 0.0f);
+    surfel.Irradiance.shortMean = float3(0.0f, 0.0f, 0.0f);
+    surfel.Irradiance.variance = float3(0.0f, 0.0f, 0.0f);
+    surfel.Irradiance.vbbr = 0.0f;
+    surfel.Irradiance.inconsistency = 0.0f;
+
+    //surfel.Color = float3(0.0f, 0.0f, 0.0f);
+    //surfel.Age = 0;
+    //surfel.DebugData = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     Data.Surfels.Storage[currentCount + tid.x] = surfel;
 
