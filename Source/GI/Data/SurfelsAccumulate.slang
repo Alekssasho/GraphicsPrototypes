@@ -16,7 +16,7 @@ cbuffer GlobalState
 struct SurfelRayPayload
 {
 	float3 Color;
-    float3 DebugData;
+    uint seed;
 };
 
 struct LightRayPayload
@@ -30,7 +30,6 @@ RaytracingAccelerationStructure rtScene;
 void SurfelRayMiss(inout SurfelRayPayload payload)
 {
 	payload.Color = float3(0.0f, 0.0f, 0.0f);
-    payload.DebugData = float3(0.0f, 0.0f, 0.0f);
 }
 
 [shader("miss")]
@@ -53,8 +52,32 @@ void SurfelClosestHit(inout SurfelRayPayload payload, in BuiltInTriangleIntersec
 
 	float3 irradiance = GetIrradianceAtPoint(sd.posW, sd.N);
 
+    uint seed = payload.seed;
+    float choice = rand_next(seed);
+    uint chosenLight = round((gLightsCount - 1) * choice);
+
+    LightSample ls = evalLight(gLights[chosenLight], sd);
+    ShadingResult sr = evalMaterial(sd, gLights[chosenLight], 1.0f);
+
+    RayDesc lRay;
+    lRay.Origin = sd.posW;
+    lRay.Direction = ls.L;
+    lRay.TMax = length(ls.posW - lRay.Origin);
+
+    LightRayPayload lightRayPayload;
+    TraceRay(rtScene,
+		RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
+		0xff,
+		1,
+		hitProgramCount,
+		1,
+		lRay,
+		lightRayPayload);
+
+    float3 radiance = (!lightRayPayload.Hit * ls.diffuse.rgb * ls.NdotL) * float(gLightsCount);
+    irradiance += radiance;
+
 	payload.Color = irradiance * (sd.diffuse / M_PI);
-    payload.DebugData = irradiance;
 }
 
   
@@ -135,7 +158,7 @@ void SurfelRayGeneration()
 	float3 irradiance = 0.0f;
 
 	SurfelRayPayload surfelRayPayload;
-    surfelRayPayload.DebugData = float3(0.0f, 0.0f, 0.0f);
+    surfelRayPayload.seed = randSeed;
 	TraceRay(rtScene,
 		0,
 		0xff,
@@ -146,48 +169,6 @@ void SurfelRayGeneration()
 		surfelRayPayload);
 
 	irradiance += surfelRayPayload.Color;
-    //Data.Surfels.Storage[surfelIndex].DebugData = float4(surfelRayPayload.DebugData, 0.0f);
-
-
-	// Explicit light sample
-	float choice = rand_next(randSeed);
-	uint chosenLight = round((gLightsCount - 1) * choice);
-
-	ShadingData sd = initShadingData();
-	sd.posW = Data.Surfels.Storage[surfelIndex].Position;
-	sd.N = Data.Surfels.Storage[surfelIndex].Normal;
-	sd.V = normalize(gCamera.posW - sd.posW);
-
-	LightSample ls = evalLight(gLights[chosenLight], sd);
-	ShadingResult sr = evalMaterial(sd, gLights[chosenLight], 1.0f);
-
-	RayDesc lRay;
-	lRay.Origin = sd.posW;
-	lRay.Direction = ls.L;
-	lRay.TMax = length(ls.posW - lRay.Origin);
-
-	LightRayPayload lightRayPayload;
-	TraceRay(rtScene,
-		RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
-		0xff,
-		1,
-		hitProgramCount,
-		1,
-		lRay,
-		lightRayPayload);
-
-	float3 radiance = (!lightRayPayload.Hit * ls.diffuse.rgb * ls.NdotL) * float(gLightsCount);
-	irradiance += radiance;
-
-	// Moving exponential average
-	// TODO: Return to exponential average
-	// lerp is defined as x * (1-k) + y * k
-
 
     MultiscaleMeanEstimator(irradiance, Data.Surfels.Storage[surfelIndex].Irradiance);
-	//Data.Surfels.Storage[surfelIndex].Color = lerp(
-	//	Data.Surfels.Storage[surfelIndex].Color,
-	//	irradiance,
-	//	1.0f / (Data.Surfels.Storage[surfelIndex].Age + 1));
-	//Data.Surfels.Storage[surfelIndex].Age++;
 }

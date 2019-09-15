@@ -4,7 +4,7 @@
 
 void GlobalIllumination::Initilize(const uvec2& giMapSize)
 {
-	m_GIMap = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RGBA8Unorm, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess | ResourceBindFlags::RenderTarget);
+	m_GIMap = Texture::create2D(giMapSize.x, giMapSize.y, ResourceFormat::RGBA16Float, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess | ResourceBindFlags::RenderTarget);
 
 	m_SurfelRendering = ComputeProgram::createFromFile("SurfelsRendering.slang", "main");
 	m_SurfelRenderingVars = ComputeVars::create(m_SurfelRendering->getReflector());
@@ -76,7 +76,7 @@ void GlobalIllumination::Initilize(const uvec2& giMapSize)
 	m_SurfelAccumulateProgram = RtProgram::create(rtDesc, sizeof(float4) * 2);
 	m_RTState = RtState::create();
 	m_RTState->setProgram(m_SurfelAccumulateProgram);
-	m_RTState->setMaxTraceRecursionDepth(1);
+	m_RTState->setMaxTraceRecursionDepth(2);
 
 	m_SurfelAccumulateRayBudget = 2048 * 4;
 	m_MaxSurfels = 1024 * 1024;

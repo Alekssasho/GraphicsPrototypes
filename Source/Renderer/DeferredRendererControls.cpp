@@ -151,14 +151,14 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 
 	if (mpSceneRenderer)
 	{
-		if (pGui->addButton("Load SkyBox Texture"))
-		{
-			std::string filename;
-			if (openFileDialog(kImageFilesFilter, filename))
-			{
-				initSkyBox(createTextureFromFile(filename, false, true));
-			}
-		}
+		//if (pGui->addButton("Load SkyBox Texture"))
+		//{
+		//	std::string filename;
+		//	if (openFileDialog(kImageFilesFilter, filename))
+		//	{
+		//		initSkyBox(createTextureFromFile(filename, false, true));
+		//	}
+		//}
 
 		if (pGui->beginGroup("Scene Settings"))
 		{
@@ -211,25 +211,25 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 			pGui->endGroup();
 		}
 
-		if (pGui->beginGroup("Renderer Settings"))
-		{
-			pGui->addCheckBox("Depth Pass", mEnableDepthPass);
-			pGui->addTooltip("Run a depth-pass at the beginning of the frame");
+		//if (pGui->beginGroup("Renderer Settings"))
+		//{
+		//	pGui->addCheckBox("Depth Pass", mEnableDepthPass);
+		//	pGui->addTooltip("Run a depth-pass at the beginning of the frame");
 
-			if (pGui->addCheckBox("Specialize Material Shaders", mPerMaterialShader))
-			{
-				mpSceneRenderer->toggleStaticMaterialCompilation(mPerMaterialShader);
-			}
-			pGui->addTooltip("Create a specialized version of the lighting program for each material in the scene");
+		//	if (pGui->addCheckBox("Specialize Material Shaders", mPerMaterialShader))
+		//	{
+		//		mpSceneRenderer->toggleStaticMaterialCompilation(mPerMaterialShader);
+		//	}
+		//	pGui->addTooltip("Create a specialized version of the lighting program for each material in the scene");
 
-			uint32_t maxAniso = mpSceneSampler->getMaxAnisotropy();
-			if (pGui->addIntVar("Max Anisotropy", (int&)maxAniso, 1, 16))
-			{
-				setSceneSampler(maxAniso);
-			}
+		//	uint32_t maxAniso = mpSceneSampler->getMaxAnisotropy();
+		//	if (pGui->addIntVar("Max Anisotropy", (int&)maxAniso, 1, 16))
+		//	{
+		//		setSceneSampler(maxAniso);
+		//	}
 
-			pGui->endGroup();
-		}
+		//	pGui->endGroup();
+		//}
 
 		if (pGui->beginGroup("G-Buffer"))
 		{
@@ -282,54 +282,54 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 			pGui->endGroup();
 		}
 
-		if (pGui->beginGroup("Light Probes"))
-		{
-			if (pGui->addButton("Add/Change Light Probe"))
-			{
-				std::string filename;
-				if (openFileDialog(kImageFilesFilter, filename))
-				{
-					updateLightProbe(LightProbe::create(pSample->getRenderContext(), filename, true, ResourceFormat::RGBA16Float));
-				}
-			}
+		//if (pGui->beginGroup("Light Probes"))
+		//{
+		//	if (pGui->addButton("Add/Change Light Probe"))
+		//	{
+		//		std::string filename;
+		//		if (openFileDialog(kImageFilesFilter, filename))
+		//		{
+		//			updateLightProbe(LightProbe::create(pSample->getRenderContext(), filename, true, ResourceFormat::RGBA16Float));
+		//		}
+		//	}
 
-			Scene::SharedPtr pScene = mpSceneRenderer->getScene();
-			if (pScene->getLightProbeCount() > 0)
-			{
-				if (pGui->addCheckBox("Enable", mControls[ControlID::EnableReflections].enabled))
-				{
-					applyLightingProgramControl(ControlID::EnableReflections);
-				}
-				if (mControls[ControlID::EnableReflections].enabled)
-				{
-					pGui->addSeparator();
-					pScene->getLightProbe(0)->renderUI(pGui);
-				}
-			}
+		//	Scene::SharedPtr pScene = mpSceneRenderer->getScene();
+		//	if (pScene->getLightProbeCount() > 0)
+		//	{
+		//		if (pGui->addCheckBox("Enable", mControls[ControlID::EnableReflections].enabled))
+		//		{
+		//			applyLightingProgramControl(ControlID::EnableReflections);
+		//		}
+		//		if (mControls[ControlID::EnableReflections].enabled)
+		//		{
+		//			pGui->addSeparator();
+		//			pScene->getLightProbe(0)->renderUI(pGui);
+		//		}
+		//	}
 
-			pGui->endGroup();
-		}
+		//	pGui->endGroup();
+		//}
 
 		mpToneMapper->renderUI(pGui, "Tone-Mapping");
 
-		if (pGui->beginGroup("Shadows"))
-		{
-			if (pGui->addCheckBox("Enable Shadows", mControls[ControlID::EnableShadows].enabled))
-			{
-				applyLightingProgramControl(ControlID::EnableShadows);
-			}
-			if (mControls[ControlID::EnableShadows].enabled)
-			{
-				pGui->addCheckBox("Update Map", mShadowPass.updateShadowMap);
-				mShadowPass.pCsm->renderUI(pGui);
-				if (pGui->addCheckBox("Visualize Cascades", mControls[ControlID::VisualizeCascades].enabled))
-				{
-					applyLightingProgramControl(ControlID::VisualizeCascades);
-					mShadowPass.pCsm->toggleCascadeVisualization(mControls[ControlID::VisualizeCascades].enabled);
-				}
-			}
-			pGui->endGroup();
-		}
+		//if (pGui->beginGroup("Shadows"))
+		//{
+		//	if (pGui->addCheckBox("Enable Shadows", mControls[ControlID::EnableShadows].enabled))
+		//	{
+		//		applyLightingProgramControl(ControlID::EnableShadows);
+		//	}
+		//	if (mControls[ControlID::EnableShadows].enabled)
+		//	{
+		//		pGui->addCheckBox("Update Map", mShadowPass.updateShadowMap);
+		//		mShadowPass.pCsm->renderUI(pGui);
+		//		if (pGui->addCheckBox("Visualize Cascades", mControls[ControlID::VisualizeCascades].enabled))
+		//		{
+		//			applyLightingProgramControl(ControlID::VisualizeCascades);
+		//			mShadowPass.pCsm->toggleCascadeVisualization(mControls[ControlID::VisualizeCascades].enabled);
+		//		}
+		//	}
+		//	pGui->endGroup();
+		//}
 
 		if (pGui->beginGroup("SSAO"))
 		{
@@ -357,19 +357,19 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 			pGui->endGroup();
 		}
 
-		if (pGui->beginGroup("Transparency"))
-		{
-			if (pGui->addCheckBox("Enable Transparency", mControls[ControlID::EnableTransparency].enabled))
-			{
-				applyLightingProgramControl(ControlID::EnableTransparency);
-			}
-			pGui->addFloatVar("Opacity Scale", mOpacityScale, 0, 1);
-			pGui->endGroup();
-		}
+		//if (pGui->beginGroup("Transparency"))
+		//{
+		//	if (pGui->addCheckBox("Enable Transparency", mControls[ControlID::EnableTransparency].enabled))
+		//	{
+		//		applyLightingProgramControl(ControlID::EnableTransparency);
+		//	}
+		//	pGui->addFloatVar("Opacity Scale", mOpacityScale, 0, 1);
+		//	pGui->endGroup();
+		//}
 
-		if (pGui->addCheckBox("Hashed-Alpha Test", mControls[ControlID::EnableHashedAlpha].enabled))
-		{
-			applyLightingProgramControl(ControlID::EnableHashedAlpha);
-		}
+		//if (pGui->addCheckBox("Hashed-Alpha Test", mControls[ControlID::EnableHashedAlpha].enabled))
+		//{
+		//	applyLightingProgramControl(ControlID::EnableHashedAlpha);
+		//}
 	}
 }
