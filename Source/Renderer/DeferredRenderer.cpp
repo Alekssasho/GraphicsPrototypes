@@ -33,8 +33,8 @@ struct MarkerScope
 	RenderContext* m_Context;
 };
 
-//const std::string DeferredRenderer::skDefaultScene = "Arcade/Arcade.fscene";
-const std::string DeferredRenderer::skDefaultScene = "G:/Development/Models/MorganMcGuire/CornellBox/falcor_scene.fscene";
+const std::string DeferredRenderer::skDefaultScene = "Arcade/Arcade.fscene";
+//const std::string DeferredRenderer::skDefaultScene = "G:/Development/Models/MorganMcGuire/CornellBox/falcor_scene.fscene";
 
 void DeferredRenderer::initDepthPass()
 {
