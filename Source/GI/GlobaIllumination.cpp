@@ -103,7 +103,7 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 			m_SurfelCoverageVars["GlobalState"]["globalSpawnChance"] = m_SpawnChance;
 		}
 
-		pGui->addIntVar("Ray Budget", m_SurfelAccumulateRayBudget, 0);
+		//pGui->addIntVar("Ray Budget", m_SurfelAccumulateRayBudget, 0);
 
 		pGui->addCheckBox("Update Time", m_UpdateTime);
 
@@ -121,26 +121,26 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 	
 		pGui->addCheckBox("Apply GI", m_ApplyGI);
 
-		if (pGui->addCheckBox("Use Weight Functions", m_UseWeightFunctions))
-		{
-			if (m_UseWeightFunctions)
-			{
-				m_SurfelRendering->addDefine("WEIGHT_FUNCTIONS");
-				m_SurfelAccumulateProgram->addDefine("WEIGHT_FUNCTIONS");
-			}
-			else
-			{
-				m_SurfelRendering->removeDefine("WEIGHT_FUNCTIONS");
-				m_SurfelAccumulateProgram->removeDefine("WEIGHT_FUNCTIONS");
-			}
-		}
+		//if (pGui->addCheckBox("Use Weight Functions", m_UseWeightFunctions))
+		//{
+		//	if (m_UseWeightFunctions)
+		//	{
+		//		m_SurfelRendering->addDefine("WEIGHT_FUNCTIONS");
+		//		m_SurfelAccumulateProgram->addDefine("WEIGHT_FUNCTIONS");
+		//	}
+		//	else
+		//	{
+		//		m_SurfelRendering->removeDefine("WEIGHT_FUNCTIONS");
+		//		m_SurfelAccumulateProgram->removeDefine("WEIGHT_FUNCTIONS");
+		//	}
+		//}
 
-		pGui->addCheckBox("Apply Blur", m_ApplyBlur);
-		if (m_ApplyBlur)
-		{
-			m_Blur->renderUI(pGui, "Blur Settings");
+		//pGui->addCheckBox("Apply Blur", m_ApplyBlur);
+		//if (m_ApplyBlur)
+		//{
+		//	m_Blur->renderUI(pGui, "Blur Settings");
 
-		}
+		//}
 
 		if (pGui->beginGroup("Statistics"))
 		{
@@ -156,7 +156,7 @@ void GlobalIllumination::RenderUI(Gui* pGui)
 			uint32_t count;
 			m_SurfelCount->getVariable(0, 0, count);
 			pGui->addText((std::string("Surfel Count: ") + std::to_string(count)).c_str());
-			m_Surfels->renderUI(pGui, "Surfels Data");
+			//m_Surfels->renderUI(pGui, "Surfels Data");
 			pGui->endGroup();
 		}
 
@@ -183,6 +183,7 @@ void GlobalIllumination::ResetGI()
 	m_CommonData->setStructuredBuffer("Surfels.Count", m_SurfelCount);
 	m_CommonData->setTexture("DebugTexture", m_DebugTexture);
 
+	// TODO: this size is wrong and is probably bugy!!!
 	m_SurfelIndices[0] = StructuredBuffer::create(m_UpdateWorldStructure, "gNewSurfelIndices", m_MaxSurfels);
 	m_SurfelIndices[1] = StructuredBuffer::create(m_UpdateWorldStructure, "gNewSurfelIndices", m_MaxSurfels);
 

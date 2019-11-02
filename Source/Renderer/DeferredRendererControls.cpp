@@ -131,14 +131,14 @@ void DeferredRenderer::applyAaMode(SampleCallbacks* pSample)
 void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 {
 	static const FileDialogFilterVec kImageFilesFilter = { {"bmp"}, {"jpg"}, {"dds"}, {"png"}, {"tiff"}, {"tif"}, {"tga"} };
-	if (pGui->addButton("Load Model"))
-	{
-		std::string filename;
-		if (openFileDialog(Model::kFileExtensionFilters, filename))
-		{
-			loadModel(pSample, filename, true);
-		}
-	}
+	//if (pGui->addButton("Load Model"))
+	//{
+	//	std::string filename;
+	//	if (openFileDialog(Model::kFileExtensionFilters, filename))
+	//	{
+	//		loadModel(pSample, filename, true);
+	//	}
+	//}
 
 	if (pGui->addButton("Load Scene"))
 	{
@@ -193,10 +193,10 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 				pGui->endGroup();
 			}
 
-			if (pGui->addCheckBox("Use CS for Skinning", mUseCsSkinning))
-			{
-				applyCsSkinningMode();
-			}
+			//if (pGui->addCheckBox("Use CS for Skinning", mUseCsSkinning))
+			//{
+			//	applyCsSkinningMode();
+			//}
 			pGui->endGroup();
 		}
 
@@ -207,7 +207,7 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 			pGui->addCheckBox("Visualize GI Map", mControls[ControlID::VisualizeGI].enabled);
 			pGui->addCheckBox("Visualize Surfel Coverage", mControls[ControlID::VisualizeSurfelCoverage].enabled);
 			pGui->addCheckBox("Visualize Irradinace", mControls[ControlID::VisualizeIrradiance].enabled);
-			pGui->addCheckBox("Visualize GI Debug Texture", mControls[ControlID::VisualizeGIDebug].enabled);
+			//pGui->addCheckBox("Visualize GI Debug Texture", mControls[ControlID::VisualizeGIDebug].enabled);
 			pGui->endGroup();
 		}
 
@@ -312,24 +312,24 @@ void DeferredRenderer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
 
 		mpToneMapper->renderUI(pGui, "Tone-Mapping");
 
-		//if (pGui->beginGroup("Shadows"))
-		//{
-		//	if (pGui->addCheckBox("Enable Shadows", mControls[ControlID::EnableShadows].enabled))
-		//	{
-		//		applyLightingProgramControl(ControlID::EnableShadows);
-		//	}
-		//	if (mControls[ControlID::EnableShadows].enabled)
-		//	{
-		//		pGui->addCheckBox("Update Map", mShadowPass.updateShadowMap);
-		//		mShadowPass.pCsm->renderUI(pGui);
-		//		if (pGui->addCheckBox("Visualize Cascades", mControls[ControlID::VisualizeCascades].enabled))
-		//		{
-		//			applyLightingProgramControl(ControlID::VisualizeCascades);
-		//			mShadowPass.pCsm->toggleCascadeVisualization(mControls[ControlID::VisualizeCascades].enabled);
-		//		}
-		//	}
-		//	pGui->endGroup();
-		//}
+		if (pGui->beginGroup("Shadows"))
+		{
+			if (pGui->addCheckBox("Enable Shadows", mControls[ControlID::EnableShadows].enabled))
+			{
+				applyLightingProgramControl(ControlID::EnableShadows);
+			}
+			if (mControls[ControlID::EnableShadows].enabled)
+			{
+				pGui->addCheckBox("Update Map", mShadowPass.updateShadowMap);
+				mShadowPass.pCsm->renderUI(pGui);
+				if (pGui->addCheckBox("Visualize Cascades", mControls[ControlID::VisualizeCascades].enabled))
+				{
+					applyLightingProgramControl(ControlID::VisualizeCascades);
+					mShadowPass.pCsm->toggleCascadeVisualization(mControls[ControlID::VisualizeCascades].enabled);
+				}
+			}
+			pGui->endGroup();
+		}
 
 		if (pGui->beginGroup("SSAO"))
 		{
